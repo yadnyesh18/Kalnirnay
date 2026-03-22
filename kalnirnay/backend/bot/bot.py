@@ -14,11 +14,12 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 API_URL = "http://localhost:3000"
 
-# Simple in-memory store — persists for the whole bot session
-PENDING_EVENTS = {}
+# In-memory stores
+PENDING_EVENTS  = {}   # key → event details dict
+EDITING_USERS   = {}   # user_id → event key (tracks who is in edit mode)
 
 
-# ── Save event to Express API ────────────────────────────────────
+# ── API calls ────────────────────────────────────────────────────
 async def save_event(details: dict) -> dict:
     try:
         async with httpx.AsyncClient() as client:
@@ -33,7 +34,6 @@ async def save_event(details: dict) -> dict:
         return {"error": str(e)}
 
 
-# ── Subscribe user ────────────────────────────────────────────────
 async def subscribe_user(telegram_id: str, username: str) -> dict:
     try:
         async with httpx.AsyncClient() as client:
@@ -48,8 +48,7 @@ async def subscribe_user(telegram_id: str, username: str) -> dict:
         return {"error": str(e)}
 
 
-# ── Handlers ─────────────────────────────────────────────────────
-
+# ── Image handler ────────────────────────────────────────────────
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     if chat_id != GROUP_CHAT_ID:
@@ -61,21 +60,21 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     image_path = os.path.join(TEMP_DIR, f"{photo.file_id}.jpg")
     await file.download_to_drive(image_path)
 
+    # Message 1
     await update.message.reply_text("Processing image, please wait...")
-    details = process_image(image_path)
-    reply   = build_reply(details)
 
-    # Use message_id as key — simple and unique
+    details = process_image(image_path)
+
     key = str(update.message.message_id)
     PENDING_EVENTS[key] = details
-    logger.info(f"Stored event with key: {key}, total pending: {len(PENDING_EVENTS)}")
+    logger.info(f"Stored event key: {key}")
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Save to calendar", callback_data=f"save_{key}"),
-        InlineKeyboardButton("Discard", callback_data=f"disc_{key}")
-    ]])
-
-    await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=keyboard)
+    # Message 2 — extracted details + buttons
+    await update.message.reply_text(
+        build_reply(details),
+        parse_mode="Markdown",
+        reply_markup=build_keyboard(key)
+    )
 
     try:
         if os.path.exists(image_path):
@@ -84,82 +83,160 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.warning(f"Failed to delete temp image: {e}")
 
 
+# ── Text handler ─────────────────────────────────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     if chat_id != GROUP_CHAT_ID:
         return
-    text = update.message.text
-    if not text or len(text.strip()) < 10:
+
+    user_id = update.effective_user.id
+    text    = update.message.text.strip()
+
+    if not text or len(text) < 2:
+        return
+
+    # ── Check if user is in edit mode ────────────────────────────
+    if user_id in EDITING_USERS:
+        key     = EDITING_USERS[user_id]
+        details = PENDING_EVENTS.get(key)
+
+        if not details:
+            del EDITING_USERS[user_id]
+            return
+
+        # Parse "field: value"
+        if ':' not in text:
+            await update.message.reply_text(
+                "Use format: `field: value`\n\n"
+                "Example: `title: Codeathon 2026`\n\n"
+                "Fields: `title` `date` `time` `venue` `deadline` `prize` `contact` `department` `team_size`",
+                parse_mode="Markdown"
+            )
+            return
+
+        field, value = text.split(':', 1)
+        field = field.strip().lower()
+        value = value.strip()
+
+        allowed = {
+            'title', 'date', 'time', 'venue', 'deadline',
+            'prize', 'contact', 'department', 'team_size',
+            'reg_link', 'summary'
+        }
+
+        if field not in allowed:
+            await update.message.reply_text(
+                f"Unknown field `{field}`.\n\n"
+                f"Allowed: {', '.join(f'`{f}`' for f in sorted(allowed))}",
+                parse_mode="Markdown"
+            )
+            return
+
+        old_val = details.get(field) or 'empty'
+        details[field] = value
+        PENDING_EVENTS[key] = details
+        del EDITING_USERS[user_id]
+
+        logger.info(f"User {user_id} edited {field}: {old_val} → {value}")
+
+        await update.message.reply_text(
+            f"Updated *{field}*: `{value}`\n\nClick *Add to calendar* to save, or *Edit details* to change more.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # ── Normal text message — extract event ──────────────────────
+    if len(text) < 10:
         return
 
     logger.info(f"Text received: {text[:60]}...")
     details = process_text(text)
-    reply   = build_reply(details)
 
     key = str(update.message.message_id)
     PENDING_EVENTS[key] = details
-    logger.info(f"Stored event with key: {key}, total pending: {len(PENDING_EVENTS)}")
+    logger.info(f"Stored event key: {key}")
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Save to calendar", callback_data=f"save_{key}"),
-        InlineKeyboardButton("Discard", callback_data=f"disc_{key}")
-    ]])
+    await update.message.reply_text(
+        build_reply(details),
+        parse_mode="Markdown",
+        reply_markup=build_keyboard(key)
+    )
 
-    await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=keyboard)
 
-
+# ── Callback handler ─────────────────────────────────────────────
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle Save / Discard button presses."""
-    query = update.callback_query
+    query   = update.callback_query
+    user_id = update.effective_user.id
     await query.answer()
 
     data = query.data
-    logger.info(f"Callback received: {data}")
-    logger.info(f"Pending events keys: {list(PENDING_EVENTS.keys())}")
+    logger.info(f"Callback: {data} from user {user_id}")
 
-    # Discard
-    if data.startswith("disc_"):
-        key = data[5:]
-        PENDING_EVENTS.pop(key, None)
-        await query.edit_message_text("Discarded. Event not saved.")
-        return
-
-    # Save
+    # ── Add to calendar ──────────────────────────────────────────
     if data.startswith("save_"):
         key     = data[5:]
         details = PENDING_EVENTS.get(key)
 
-        logger.info(f"Looking for key: {key}, found: {details is not None}")
-
         if not details:
-            await query.edit_message_text(
-                "Could not find event data. Please resend the image or message."
-            )
+            await query.answer("Session expired. Please resend the image.", show_alert=True)
             return
 
         result = await save_event(details)
 
+        # Keep message 2 text, just remove buttons
+        await query.edit_message_reply_markup(reply_markup=None)
+
+        # Message 3 — new separate message
         if "error" in result:
             if result.get("error") == "Duplicate event":
-                await query.edit_message_text(
+                await query.message.reply_text(
                     f"Already in calendar: *{details.get('title')}*",
                     parse_mode="Markdown"
                 )
             else:
-                await query.edit_message_text(f"Failed to save: {result['error']}")
+                await query.message.reply_text("Failed to save. Please try again.")
         else:
-            await query.edit_message_text(
-                f"Saved to Kalnirnay calendar!\n\n"
-                f"*{details.get('title')}*\n"
-                f"Date: {details.get('date') or 'Not detected'}",
+            await query.message.reply_text(
+                f"Added to calendar!\n*{details.get('title')}* — {details.get('date') or 'No date'}",
                 parse_mode="Markdown"
             )
 
         PENDING_EVENTS.pop(key, None)
+        EDITING_USERS.pop(user_id, None)
+        return
+
+    # ── Edit details ─────────────────────────────────────────────
+    if data.startswith("edit_"):
+        key     = data[5:]
+        details = PENDING_EVENTS.get(key)
+
+        if not details:
+            await query.answer("Session expired. Please resend the image.", show_alert=True)
+            return
+
+        # Put user in edit mode
+        EDITING_USERS[user_id] = key
+        logger.info(f"User {user_id} entered edit mode for key {key}")
+
+        await query.answer(
+            "Now type in the group: field: value\n\n"
+            "Example: title: Codeathon 2026",
+            show_alert=True
+        )
+        return
+
+    # ── Discard ──────────────────────────────────────────────────
+    if data.startswith("disc_"):
+        key = data[5:]
+        PENDING_EVENTS.pop(key, None)
+        EDITING_USERS.pop(user_id, None)
+        await query.edit_message_reply_markup(reply_markup=None)
+        await query.message.reply_text("Event discarded.")
+        return
 
 
+# ── Subscribe command ────────────────────────────────────────────
 async def handle_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/subscribe command — opt in to event reminders."""
     user        = update.effective_user
     telegram_id = str(user.id)
     username    = user.username or user.first_name
@@ -174,7 +251,15 @@ async def handle_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-# ── Reply builder ─────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────
+def build_keyboard(key: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("Add to calendar", callback_data=f"save_{key}"),
+        InlineKeyboardButton("Edit details",    callback_data=f"edit_{key}"),
+        InlineKeyboardButton("Discard",         callback_data=f"disc_{key}"),
+    ]])
+
+
 def build_reply(details: dict) -> str:
     lines = ["*Kalnirnay — Event Detected*\n"]
 
@@ -212,10 +297,12 @@ def build_reply(details: dict) -> str:
 def main():
     logger.info("Starting Kalnirnay bot...")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.Command("subscribe"), handle_subscribe))
+
     logger.info("Bot is polling... Send a message or image to your group!")
     app.run_polling()
 
