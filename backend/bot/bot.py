@@ -144,10 +144,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # ── Normal text message — extract event ──────────────────────
-    if len(text) < 10:
+    if len(text) < 20:
+        await update.message.reply_text(
+            "Send me an event poster image or paste the event details as text and I'll extract the info for you!"
+        )
         return
 
     logger.info(f"Text received: {text[:60]}...")
+    await update.message.reply_text("Processing text, please wait...")
+
     details = process_text(text)
 
     key = str(update.message.message_id)
