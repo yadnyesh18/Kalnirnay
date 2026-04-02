@@ -221,23 +221,24 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"User {user_id} entered edit mode for key {key}")
         await query.answer()
 
-        fields_display = "\n".join([
-            f"• `title` → {details.get('title') or 'empty'}",
-            f"• `date` → {details.get('date') or 'empty'}",
-            f"• `time` → {details.get('time') or 'empty'}",
-            f"• `venue` → {details.get('venue') or 'empty'}",
-            f"• `deadline` → {details.get('deadline') or 'empty'}",
-            f"• `prize` → {details.get('prize') or 'empty'}",
-            f"• `contact` → {details.get('contact') or 'empty'}",
-            f"• `department` → {details.get('department') or 'empty'}",
-            f"• `team_size` → {details.get('team_size') or 'empty'}",
-            f"• `reg_link` → {details.get('reg_link') or 'empty'}",
-            f"• `summary` → {details.get('summary') or 'empty'}",
-        ])
+        DISPLAY_FIELDS = [
+            ('title', 'title'), ('date', 'date'), ('time', 'time'),
+            ('venue', 'venue'), ('department', 'department'), ('deadline', 'deadline'),
+            ('prize', 'prize'), ('team_size', 'team_size'), ('reg_link', 'reg_link'),
+            ('contact', 'contact'), ('domains', 'domains'), ('summary', 'summary'),
+        ]
+        extracted_lines = []
+        for field, key_ in DISPLAY_FIELDS:
+            val = details.get(field)
+            if val:
+                display_val = ', '.join(val) if isinstance(val, list) else str(val)
+                extracted_lines.append(f"• `{field}` → {display_val}")
+
+        fields_display = '\n'.join(extracted_lines) if extracted_lines else '_No fields extracted_'
 
         await query.message.reply_text(
-            f"*Current event details:*\n{fields_display}\n\n"
-            f"Reply with: `field: new value`\n"
+            f"*Extracted event details:*\n{fields_display}\n\n"
+            f"Reply with: `field: new value` to edit\n"
             f"Example: `title: Codeathon 2026`",
             parse_mode="Markdown"
         )

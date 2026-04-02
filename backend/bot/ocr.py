@@ -193,6 +193,16 @@ def find_title(lines):
         return best
     return "Untitled Event"
 
+# ── Conversational title extraction ─────────────────────────────
+def find_title_conversational(text):
+    # "event named/called X", "hackathon named X", "event name is X"
+    m = re.search(r'(?:event|hackathon|competition|fest|contest|workshop|seminar|webinar)\s+(?:named?|called|titled?|is)\s+["\']?([A-Za-z0-9 \'\-\.]+)["\']?', text, re.IGNORECASE)
+    if m: return m.group(1).strip().title()
+    # "X hackathon/event/competition"
+    m = re.search(r'([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+)?)\s+(?:hackathon|competition|fest|contest|workshop|seminar)', text)
+    if m: return m.group(1).strip()
+    return None
+
 # ── Main NLP extraction ──────────────────────────────────────────
 def extract_details(text, engine="unknown"):
     doc    = nlp(text)
@@ -244,6 +254,10 @@ def extract_details(text, engine="unknown"):
     if not venue:
         m = re.search(r'(?<!\d)(\d{3}[-–][A-Z])(?!\d)', text)
         if m: venue = m.group(1).strip()
+    # conversational: "at X Institute/College/University"
+    if not venue:
+        m = re.search(r'\bat\s+([A-Z][A-Za-z0-9\.\s]{3,60}?(?:Institute|College|University|School|Academy|Campus|Hall|Auditorium)[A-Za-z0-9\s,\.]*)', text)
+        if m: venue = m.group(1).strip()
 
     # ── Department ───────────────────────────────────────────────
     department = None
@@ -252,6 +266,10 @@ def extract_details(text, engine="unknown"):
         if m: department = m.group(0).strip(); break
     if not department:
         m = re.search(r'((?:Dwarkadas|Sanghvi|Rayeshwar|A\.?P\.?\s*Shah|SVKM)[^\n]{5,60})', text, re.IGNORECASE)
+        if m: department = m.group(1).strip()
+    # conversational: extract institute/college name
+    if not department:
+        m = re.search(r'([A-Z][A-Za-z\.\s]{2,50}?(?:Institute|College|University|School|Academy)\s+of\s+[A-Za-z\s]{2,40})', text)
         if m: department = m.group(1).strip()
 
     # ── Event head ───────────────────────────────────────────────
@@ -286,6 +304,8 @@ def extract_details(text, engine="unknown"):
         raw  = re.findall(r'₹\s*([\d,]+)', text)
         raw += re.findall(r'(?:rs\.?|inr)\s*([\d,]+)', text, re.IGNORECASE)
         raw += re.findall(r'(?:1st|2nd|3rd|first|second|third)[^\n₹]{0,10}₹\s*([\d,]+)', text, re.IGNORECASE)
+        # conversational: "winning price/prize is 50000", "prize of 50000"
+        raw += re.findall(r'(?:winning\s+(?:price|prize)|prize\s+(?:money|pool|of)|cash\s+prize\s+(?:of|is)|prize\s+is)[\s:]*([\d,]+)', text, re.IGNORECASE)
         if raw:
             amounts = sorted({int(p.replace(',','')) for p in raw
                              if p.replace(',','').isdigit() and int(p.replace(',','')) > 100},
@@ -358,6 +378,9 @@ def extract_details(text, engine="unknown"):
                 if not any(kw in line.upper() for kw in TITLE_SKIP_KW):
                     summary_lines.append(line[:150])
                     break
+    # for conversational single-paragraph text, use the whole text as summary
+    if not summary_lines and len(text.split()) > 5:
+        summary_lines = [joined[:200]]
     if not summary_lines:
         parts = []
         if domains:      parts.append(f"Domains: {', '.join(domains)}")
@@ -367,7 +390,7 @@ def extract_details(text, engine="unknown"):
     summary = '; '.join(summary_lines[:3]) if summary_lines else None
 
     # ── Title ────────────────────────────────────────────────────
-    title = find_title(text.split('\n'))
+    title = find_title_conversational(joined) or find_title(text.split('\n'))
 
     result = {
         "title": title, "date": date_display, "time": time_found,
@@ -391,4 +414,33 @@ def process_image(image_path):
     return extract_details(text, engine)
 
 def process_text(text):
-    return extract_details(text, "text")
+    field_map = {
+        'title': 'title', 'event': 'title', 'event name': 'title',
+        'date': 'date', 'event date': 'date',
+        'time': 'time', 'event time': 'time',
+        'venue': 'venue', 'location': 'venue', 'place': 'venue',
+        'deadline': 'deadline', 'last date': 'deadline', 'registration deadline': 'deadline',
+        'prize': 'prize', 'prize pool': 'prize', 'prizes': 'prize',
+        'contact': 'contact', 'contact person': 'contact',
+        'department': 'department', 'dept': 'department',
+        'team size': 'team_size', 'team': 'team_size',
+        'registration link': 'reg_link', 'register': 'reg_link', 'link': 'reg_link',
+        'summary': 'summary', 'description': 'summary', 'about': 'summary',
+        'domain': 'domains', 'domains': 'domains', 'track': 'domains', 'tracks': 'domains',
+    }
+    structured = {}
+    for line in text.split('\n'):
+        if ':' in line:
+            key, _, val = line.partition(':')
+            key = key.strip().lower()
+            val = val.strip()
+            if key in field_map and val:
+                structured[field_map[key]] = val
+
+    result = extract_details(text, "text")
+
+    for field, value in structured.items():
+        if value:
+            result[field] = value
+
+    return result
