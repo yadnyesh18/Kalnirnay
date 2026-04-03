@@ -3,12 +3,37 @@ import Navbar from './components/Navbar'
 import CalendarView from './components/CalendarView'
 import EventCard from './components/EventCard'
 import SubscribeModal from './components/SubscribeModal'
+import HeroPage from './components/HeroPage'
+import SignIn from './components/SignIn'
+import Register from './components/Register'
+import Splash from './components/Splash'
 import axios from 'axios'
 import './App.css'
 
 const API = 'http://localhost:3000'
 
 export default function App() {
+  const [page, setPage] = useState('splash') // 'splash' | 'hero' | 'signin' | 'register' | 'app'
+
+  if (page === 'splash') return <Splash onDone={() => setPage('hero')} />
+
+  if (page === 'hero') return (
+    <HeroPage
+      onSignIn={() => setPage('signin')}
+      onRegister={() => setPage('register')}
+    />
+  )
+  if (page === 'signin') return (
+    <SignIn onBack={() => setPage('hero')} onSuccess={() => setPage('app')} />
+  )
+  if (page === 'register') return (
+    <Register onBack={() => setPage('hero')} onSuccess={() => setPage('app')} />
+  )
+
+  return <MainApp />
+}
+
+function MainApp() {
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showSubscribe, setShowSubscribe] = useState(false)
@@ -110,7 +135,7 @@ export default function App() {
       )}
     </div>
   )
-}
+} // end MainApp
 
 function EventListItem({ event, onClick }) {
   const isPast = event.date && new Date(event.date.split(' to ')[0]) < new Date()
