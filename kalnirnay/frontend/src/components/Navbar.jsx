@@ -1,4 +1,4 @@
-export default function Navbar({ onSubscribe }) {
+export default function Navbar({ user, onLogin, onLogout }) {
   return (
     <nav className="navbar">
       <a className="navbar-logo" href="/">
@@ -6,10 +6,18 @@ export default function Navbar({ onSubscribe }) {
         <span className="logo-name">Kaal<span>nirnay</span></span>
       </a>
       <div className="navbar-right">
-        <span className="nav-tag">SE_A_06</span>
-        <button className="btn btn-primary" onClick={onSubscribe}>
-          Get Notified
-        </button>
+        {user ? (
+          <>
+            <span className="nav-tag">@{user.username}</span>
+            <button className="btn btn-secondary" onClick={onLogout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <button className="btn btn-primary" onClick={onLogin}>
+            Login
+          </button>
+        )}
       </div>
     </nav>
   )
