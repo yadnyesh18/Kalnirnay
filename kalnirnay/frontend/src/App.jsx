@@ -36,16 +36,25 @@ export default function App() {
 function MainApp() {
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [showSubscribe, setShowSubscribe] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
 
   useEffect(() => { 
+    // Only fetch events when user logs in, or we want a public view?
+    // Let's fetch all events initially if user is not logged in, just to show something.
     fetchEvents()
-  }, [])
+  }, [user])
 
   const fetchEvents = async () => {
     try {
-      const res = await axios.get(`${API}/events`)
+      setLoading(true)
+      let url = `${API}/events`
+      if (user && user.groups && user.groups.length > 0) {
+        url += `?groups=${user.groups.join(',')}`
+      }
+      
+      const res = await axios.get(url)
       setEvents(res.data)
     } catch (err) {
       console.error('Failed to fetch events:', err)
@@ -54,69 +63,95 @@ function MainApp() {
     }
   }
 
+  const handleLogin = async (username) => {
+    try {
+      setLoading(true)
+      const sanitizedUsername = username.replace('@', '')
+      const res = await axios.get(`${API}/subscriptions/user/${sanitizedUsername}`)
+      setUser(res.data)
+      setShowLogin(false)
+      alert(`Welcome ${res.data.username}! Your personalized calendar is ready.`)
+    } catch (err) {
+      alert("User not found or no groups linked. Type /join in a Telegram group with the bot first!")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="app">
-      <Navbar onSubscribe={() => setShowSubscribe(true)} />
+      <Navbar 
+        user={user}
+        onLogin={() => setShowLogin(true)} 
+        onLogout={() => { setUser(null); setEvents([]); }} 
+      />
 
       <main className="main">
-        <div className="hero">
-          <div className="hero-text">
-            <span className="hero-tag">Smart Event Tracker</span>
-            <h1 className="hero-title">Kalnirnay</h1>
-            <p className="hero-sub">
-              College events, hackathons and deadlines — all in one place.
-              Never miss an opportunity again.
-            </p>
-          </div>
-          <div className="hero-stats">
-            <div className="stat">
-              <span className="stat-num">{events.length}</span>
-              <span className="stat-label">Events tracked</span>
-            </div>
-            <div className="stat">
-              <span className="stat-num">
-                {events.filter(e => e.deadline).length}
-              </span>
-              <span className="stat-label">With deadlines</span>
-            </div>
-            <div className="stat">
-              <span className="stat-num">
-                {events.filter(e => e.prize).length}
-              </span>
-              <span className="stat-label">Prize events</span>
-            </div>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="loading">
-            <div className="spinner" />
-            <p>Loading events...</p>
-          </div>
-        ) : (
-          <>
-            <CalendarView
-              events={events}
-              onEventClick={setSelectedEvent}
-            />
-
-            <div className="events-list">
-              <h2 className="section-title">All Events</h2>
-              <div className="events-grid">
-                {events.length === 0 ? (
-                  <p className="empty">No events yet. Send a poster to your Telegram group!</p>
-                ) : (
-                  events.map(event => (
-                    <EventListItem
-                      key={event.id}
-                      event={event}
-                      onClick={() => setSelectedEvent(event)}
-                    />
-                  ))
-                )}
+        {!user ? (
+          /* ── LANDING PAGE (LOGGED OUT VIEW) ── */
+          <div className="landing-page">
+            <div className="hero">
+              <div className="hero-text">
+                <span className="hero-tag">Smart Event Tracker</span>
+                <h1 className="hero-title">Kalnirnay</h1>
+                <p className="hero-sub">
+                  Track college events, hackathons, and deadlines specifically from your Telegram groups.
+                  Log in to view your personalized calendar.
+                </p>
+                <button className="btn btn-primary hero-btn" onClick={() => setShowLogin(true)}>
+                  Log In with Telegram
+                </button>
               </div>
             </div>
-          </>
+          </div>
+        ) : (
+          /* ── DASHBOARD (LOGGED IN VIEW) ── */
+          <div className="dashboard">
+            <div className="dashboard-header">
+              <h2>Welcome back, @{user.username}</h2>
+              <div className="dashboard-stats">
+                <div className="stat">
+                  <span className="stat-num">{events.length}</span>
+                  <span className="stat-label">Events tracked</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-num">{events.filter(e => e.deadline).length}</span>
+                  <span className="stat-label">With deadlines</span>
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="loading">
+                <div className="spinner" />
+                <p>Loading your events...</p>
+              </div>
+            ) : (
+              <>
+                <CalendarView
+                  events={events}
+                  onEventClick={setSelectedEvent}
+                />
+
+                <div className="events-list">
+                  <h2 className="section-title">Your Group Events</h2>
+                  <div className="events-grid">
+                    {events.length === 0 ? (
+                      <p className="empty">No events yet. Send a poster to your Telegram group!</p>
+                    ) : (
+                      events.map(event => (
+                        <EventListItem
+                          key={event.id}
+                          event={event}
+                          onClick={() => setSelectedEvent(event)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </main>
 
@@ -127,11 +162,27 @@ function MainApp() {
         />
       )}
 
-      {showSubscribe && (
-        <SubscribeModal
-          onClose={() => setShowSubscribe(false)}
-          apiUrl={API}
-        />
+      {showLogin && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Log In with Telegram</h2>
+            <p>Enter your Telegram username to view events from your joined groups.</p>
+            <p className="small-text" style={{marginBottom: "1rem"}}>(Make sure you have typed <b>/join</b> in a group with the bot!)</p>
+            <input 
+              type="text" 
+              placeholder="username (without @)" 
+              id="login-username"
+              className="login-input"
+            />
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setShowLogin(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={() => {
+                const val = document.getElementById('login-username').value
+                if(val) handleLogin(val)
+              }}>Log In</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

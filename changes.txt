@@ -1,0 +1,8 @@
+edit button in telegram [DONE]
+notification testing 
+users login frontend 
+different calendars for different groups 
+merge multiple calendars for same user if user in different groups 
+how will the backend, frontend, bot, database run after closing my terminals 
+twilio 
+add ignore button 

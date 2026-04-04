@@ -133,7 +133,7 @@ def parse_date(s):
         if not re.search(r'\d{4}', s):
             p2 = dateparser.parse(f"{s} 2026", settings={"PREFER_DAY_OF_MONTH": "first", "RETURN_AS_TIMEZONE_AWARE": False})
             if p2: p = p2
-        return p.strftime("%Y-%m-%d")
+        return p.strftime("%d %m %Y")
     return None
 
 def noise_r(line):
