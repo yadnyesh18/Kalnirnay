@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import CalendarView from './components/CalendarView'
 import EventCard from './components/EventCard'
-import SubscribeModal from './components/SubscribeModal'
+import ProfilePanel from './components/ProfilePanel'
 import HeroPage from './components/HeroPage'
 import SignIn from './components/SignIn'
 import Register from './components/Register'
@@ -13,7 +13,13 @@ import './App.css'
 const API = 'http://localhost:3000'
 
 export default function App() {
-  const [page, setPage] = useState('splash') // 'splash' | 'hero' | 'signin' | 'register' | 'app'
+  const [page, setPage] = useState('splash')
+  const [user, setUser] = useState(null)
+
+  const handleSuccess = (userData) => {
+    setUser(userData || null)
+    setPage('app')
+  }
 
   if (page === 'splash') return <Splash onDone={() => setPage('hero')} />
 
@@ -23,37 +29,45 @@ export default function App() {
       onRegister={() => setPage('register')}
     />
   )
+
   if (page === 'signin') return (
-    <SignIn onBack={() => setPage('hero')} onSuccess={() => setPage('app')} />
-  )
-  if (page === 'register') return (
-    <Register onBack={() => setPage('hero')} onSuccess={() => setPage('app')} />
+    <SignIn
+      onBack={() => setPage('hero')}
+      onSuccess={handleSuccess}
+      onRegister={() => setPage('register')}
+    />
   )
 
-  return <MainApp />
+  if (page === 'register') return (
+    <Register
+      onBack={() => setPage('hero')}
+      onSuccess={handleSuccess}
+      onSignIn={() => setPage('signin')}
+    />
+  )
+
+  return (
+    <MainApp
+      user={user}
+      onLogout={() => { setUser(null); setPage('hero') }}
+      onUserUpdate={(updated) => setUser(updated)}
+    />
+  )
 }
 
-function MainApp() {
+function MainApp({ user, onLogout, onUserUpdate }) {
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [showLogin, setShowLogin] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
+  const [showProfile, setShowProfile] = useState(false)
 
-  useEffect(() => { 
-    // Only fetch events when user logs in, or we want a public view?
-    // Let's fetch all events initially if user is not logged in, just to show something.
-    fetchEvents()
-  }, [user])
+  useEffect(() => { fetchEvents() }, [user])
 
   const fetchEvents = async () => {
     try {
       setLoading(true)
       let url = `${API}/events`
-      if (user && user.groups && user.groups.length > 0) {
-        url += `?groups=${user.groups.join(',')}`
-      }
-      
+      if (user?.groups?.length > 0) url += `?groups=${user.groups.join(',')}`
       const res = await axios.get(url)
       setEvents(res.data)
     } catch (err) {
@@ -63,130 +77,84 @@ function MainApp() {
     }
   }
 
-  const handleLogin = async (username) => {
-    try {
-      setLoading(true)
-      const sanitizedUsername = username.replace('@', '')
-      const res = await axios.get(`${API}/subscriptions/user/${sanitizedUsername}`)
-      setUser(res.data)
-      setShowLogin(false)
-      alert(`Welcome ${res.data.username}! Your personalized calendar is ready.`)
-    } catch (err) {
-      alert("User not found or no groups linked. Type /join in a Telegram group with the bot first!")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="app">
-      <Navbar 
+      <Navbar
         user={user}
-        onLogin={() => setShowLogin(true)} 
-        onLogout={() => { setUser(null); setEvents([]); }} 
+        onLogin={() => {}}
+        onLogout={onLogout}
+        onProfileOpen={() => setShowProfile(true)}
       />
 
       <main className="main">
-        {!user ? (
-          /* ── LANDING PAGE (LOGGED OUT VIEW) ── */
-          <div className="landing-page">
-            <div className="hero">
-              <div className="hero-text">
-                <span className="hero-tag">Smart Event Tracker</span>
-                <h1 className="hero-title">Kalnirnay</h1>
-                <p className="hero-sub">
-                  Track college events, hackathons, and deadlines specifically from your Telegram groups.
-                  Log in to view your personalized calendar.
-                </p>
-                <button className="btn btn-primary hero-btn" onClick={() => setShowLogin(true)}>
-                  Log In with Telegram
-                </button>
-              </div>
+        <div className="dashboard-header">
+          <h2>Welcome back{user?.username ? `, @${user.username}` : ''}!</h2>
+          <div className="dashboard-stats">
+            <div className="stat">
+              <span className="stat-num">{events.length}</span>
+              <span className="stat-label">Events tracked</span>
             </div>
+            <div className="stat">
+              <span className="stat-num">{events.filter(e => e.deadline).length}</span>
+              <span className="stat-label">With deadlines</span>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="loading">
+            <div className="spinner" />
+            <p>Loading your events...</p>
           </div>
         ) : (
-          /* ── DASHBOARD (LOGGED IN VIEW) ── */
-          <div className="dashboard">
-            <div className="dashboard-header">
-              <h2>Welcome back, @{user.username}</h2>
-              <div className="dashboard-stats">
-                <div className="stat">
-                  <span className="stat-num">{events.length}</span>
-                  <span className="stat-label">Events tracked</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-num">{events.filter(e => e.deadline).length}</span>
-                  <span className="stat-label">With deadlines</span>
-                </div>
+          <>
+            <CalendarView events={events} onEventClick={setSelectedEvent} onTelegramSignIn={onUserUpdate} />
+            <div className="events-list">
+              <h2 className="section-title">Your Group Events</h2>
+              <div className="events-grid">
+                {events.length === 0 ? (
+                  <p className="empty">No events yet. Send a poster to your Telegram group!</p>
+                ) : (
+                  events.map(event => (
+                    <EventListItem
+                      key={event.id}
+                      event={event}
+                      onClick={() => setSelectedEvent(event)}
+                    />
+                  ))
+                )}
               </div>
             </div>
-
-            {loading ? (
-              <div className="loading">
-                <div className="spinner" />
-                <p>Loading your events...</p>
-              </div>
-            ) : (
-              <>
-                <CalendarView
-                  events={events}
-                  onEventClick={setSelectedEvent}
-                />
-
-                <div className="events-list">
-                  <h2 className="section-title">Your Group Events</h2>
-                  <div className="events-grid">
-                    {events.length === 0 ? (
-                      <p className="empty">No events yet. Send a poster to your Telegram group!</p>
-                    ) : (
-                      events.map(event => (
-                        <EventListItem
-                          key={event.id}
-                          event={event}
-                          onClick={() => setSelectedEvent(event)}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          </>
         )}
       </main>
 
+      {/* Event detail modal */}
       {selectedEvent && (
-        <EventCard
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-        />
+        <EventCard event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
 
-      {showLogin && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Log In with Telegram</h2>
-            <p>Enter your Telegram username to view events from your joined groups.</p>
-            <p className="small-text" style={{marginBottom: "1rem"}}>(Make sure you have typed <b>/join</b> in a group with the bot!)</p>
-            <input 
-              type="text" 
-              placeholder="username (without @)" 
-              id="login-username"
-              className="login-input"
+      {/* Profile drawer overlay */}
+      {showProfile && (
+        <div className="profile-overlay" onClick={() => setShowProfile(false)}>
+          <div className="profile-drawer" onClick={e => e.stopPropagation()}>
+            <button className="profile-drawer-close" onClick={() => setShowProfile(false)}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M14 4L4 14M4 4l10 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <ProfilePanel
+              user={user}
+              events={events}
+              onLogout={() => { setShowProfile(false); onLogout() }}
+              onUserUpdate={onUserUpdate}
             />
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setShowLogin(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={() => {
-                const val = document.getElementById('login-username').value
-                if(val) handleLogin(val)
-              }}>Log In</button>
-            </div>
           </div>
         </div>
       )}
     </div>
   )
-} // end MainApp
+}
 
 function EventListItem({ event, onClick }) {
   const isPast = event.date && new Date(event.date.split(' to ')[0]) < new Date()
@@ -197,15 +165,13 @@ function EventListItem({ event, onClick }) {
         <div className="event-dot" />
         <div>
           <h3 className="event-item-title">{event.title}</h3>
-          {event.department && (
-            <p className="event-item-dept">{event.department}</p>
-          )}
+          {event.department && <p className="event-item-dept">{event.department}</p>}
         </div>
       </div>
       <div className="event-item-right">
         {event.date && <span className="event-date-badge">{event.date}</span>}
         {event.prize && <span className="event-prize-badge">Prize</span>}
-        {event.domains && event.domains.length > 0 && (
+        {event.domains?.length > 0 && (
           <div className="event-domains">
             {event.domains.slice(0, 2).map(d => (
               <span key={d} className="domain-tag">{d}</span>

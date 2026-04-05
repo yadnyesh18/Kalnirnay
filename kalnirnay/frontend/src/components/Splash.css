@@ -1,125 +1,97 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 .splash {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #050810;
+  background: #030303;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.25rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  font-family: 'Space Mono', monospace;
+  color: #fff;
   overflow: hidden;
-  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 .splash-out {
   opacity: 0;
-  transform: scale(1.04);
   pointer-events: none;
+  transform: scale(1.05);
 }
 
-/* ── Orbs ── */
-.splash-orb {
+.splash-grid {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
+  inset: -150%;
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(600px) rotateX(60deg) translateY(0) translateZ(-200px);
+  animation: moveSplashGrid 3s linear infinite;
+  mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+  -webkit-mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
 }
 
-.s-orb1 {
-  width: 560px; height: 560px;
-  background: radial-gradient(circle, #1a4bff 0%, transparent 70%);
-  top: -180px; left: 50%;
-  transform: translateX(-50%);
-  opacity: 0.5;
-  animation: splashFloat 4s ease-in-out infinite;
+@keyframes moveSplashGrid {
+  0% { transform: perspective(600px) rotateX(60deg) translateY(0) translateZ(-200px); }
+  100% { transform: perspective(600px) rotateX(60deg) translateY(50px) translateZ(-200px); }
 }
 
-.s-orb2 {
-  width: 320px; height: 320px;
-  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
-  bottom: -80px; left: 15%;
-  opacity: 0.25;
-  animation: splashFloat 5s ease-in-out infinite reverse;
-}
-
-.s-orb3 {
-  width: 260px; height: 260px;
-  background: radial-gradient(circle, #0ea5e9 0%, transparent 70%);
-  bottom: 10%; right: 10%;
-  opacity: 0.2;
-  animation: splashFloat 6s ease-in-out infinite;
-}
-
-@keyframes splashFloat {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-24px); }
-}
-
-/* ── Logo ── */
-.splash-center {
+.splash-content {
   position: relative;
-  width: 130px; height: 130px;
-  display: grid;
-  place-items: center;
-  animation: logoIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-@keyframes logoIn {
-  from { opacity: 0; transform: scale(0.6); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-.splash-ring {
-  position: absolute;
-  inset: -18px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(26,75,255,0.4) 0%, transparent 70%);
-  animation: ringPulse 2s ease-in-out infinite;
-}
-
-@keyframes ringPulse {
-  0%, 100% { transform: scale(1);    opacity: 0.7; }
-  50%       { transform: scale(1.18); opacity: 1;   }
-}
-
-.splash-logo {
-  width: 108px; height: 108px;
-  background: linear-gradient(145deg, #0d1a3a 0%, #1a2f6e 50%, #0d1a3a 100%);
-  border: 1px solid rgba(96,165,250,0.25);
-  border-radius: 30px;
-  display: grid;
-  place-items: center;
-  color: #60a5fa;
-  box-shadow:
-    0 0 50px rgba(26,75,255,0.45),
-    0 0 100px rgba(26,75,255,0.15),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-/* ── Text ── */
-.splash-name {
-  font-family: 'Fraunces', serif;
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.splash-icon-anim {
+  width: 50px;
+  height: 50px;
   color: #fff;
-  animation: textIn 0.6s 0.3s ease both;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
 }
 
-.splash-tagline {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+.draw-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: drawSvg 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.3s; }
+.delay-2 { animation-delay: 0.6s; }
+
+@keyframes drawSvg {
+  to { stroke-dashoffset: 0; }
+}
+
+.splash-title-glitch {
+  font-size: 1.5rem;
+  letter-spacing: 0.4em;
+  font-weight: 700;
   text-transform: uppercase;
-  color: rgba(96,165,250,0.6);
-  animation: textIn 0.6s 0.5s ease both;
+  text-shadow: 0 0 15px rgba(255,255,255,0.4);
+  margin-right: -0.4em; /* offset tracking */
 }
 
-@keyframes textIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+.splash-progress {
+  width: 160px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.splash-bar {
+  height: 100%;
+  width: 0;
+  background: #fff;
+  box-shadow: 0 0 10px 2px rgba(255,255,255,0.6);
+  animation: loadBar 1.8s cubic-bezier(0.8, 0, 0.2, 1) forwards;
+}
+
+@keyframes loadBar {
+  to { width: 100%; }
 }

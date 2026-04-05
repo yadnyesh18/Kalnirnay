@@ -1,4 +1,6 @@
-export default function Navbar({ user, onLogin, onLogout }) {
+export default function Navbar({ user, onLogin, onLogout, onProfileOpen }) {
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '??'
+
   return (
     <nav className="navbar">
       <a className="navbar-logo" href="/">
@@ -8,15 +10,16 @@ export default function Navbar({ user, onLogin, onLogout }) {
       <div className="navbar-right">
         {user ? (
           <>
-            <span className="nav-tag">@{user.username}</span>
-            <button className="btn btn-secondary" onClick={onLogout}>
-              Logout
+            <button className="nav-profile-btn" onClick={onProfileOpen} title="Profile">
+              <div className="nav-avatar">{initials}</div>
+              <span className="nav-username">@{user.username}</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </>
         ) : (
-          <button className="btn btn-primary" onClick={onLogin}>
-            Login
-          </button>
+          <button className="btn btn-primary" onClick={onLogin}>Login</button>
         )}
       </div>
     </nav>

@@ -1,228 +1,268 @@
 import './HeroPage.css'
-
-const Icon = {
-  calendar: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  parse: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-    </svg>
-  ),
-  bell: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-  ),
-  trophy: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="8 21 12 17 16 21"/><line x1="12" y1="17" x2="12" y2="11"/><path d="M7 4H4a2 2 0 0 0-2 2v1a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V6a2 2 0 0 0-2-2h-3"/><rect x="7" y="2" width="10" height="6" rx="1"/>
-    </svg>
-  ),
-  zap: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  ),
-  filter: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-    </svg>
-  ),
-  logoMark: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  logoMarkSm: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  arrow: (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  ),
-}
-
-const features = [
-  { icon: Icon.parse,    title: 'Poster Parsing',   desc: 'Send any event poster to Telegram. It extracts title, date, deadline, and prize — instantly.' },
-  { icon: Icon.calendar, title: 'Smart Calendar',   desc: 'All events land on a live calendar. Filter by domain, department, or deadline proximity.' },
-  { icon: Icon.bell,     title: 'Deadline Alerts',  desc: 'Never miss a registration window. Get notified before it\'s too late.' },
-  { icon: Icon.trophy,   title: 'Prize Tracking',   desc: 'Spot high-value hackathons at a glance. Prize badges surface the best opportunities.' },
-  { icon: Icon.zap,      title: 'Real-time Sync',   desc: 'Events update the moment your Telegram group receives a new poster.' },
-  { icon: Icon.filter,   title: 'Domain Filters',   desc: 'Filter by Web, Design, Finance and more. See only what\'s relevant to you.' },
-]
-
-const steps = [
-  { n: '01', title: 'Add the bot',      desc: 'Invite the Kalnirnay bot to your college Telegram group in seconds.' },
-  { n: '02', title: 'Share posters',    desc: 'Drop any event poster image into the group. It does the rest.' },
-  { n: '03', title: 'Track everything', desc: 'Open the dashboard. Your calendar is already populated and sorted.' },
-]
-
-const stats = [
-  { n: '2,400+', l: 'Events Parsed' },
-  { n: '98%',    l: 'Accuracy Rate' },
-  { n: '<2s',    l: 'Parse Speed'   },
-  { n: '100%',   l: 'Free Forever'  },
-]
+import { useEffect, useState } from 'react'
 
 export default function HeroPage({ onSignIn, onRegister }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [dots, setDots] = useState([]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Generate dynamic dots
+    const newDots = Array.from({ length: 50 }).map((_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDuration: `${Math.random() * 15 + 10}s`,
+      animationDelay: `-${Math.random() * 15}s`,
+      opacity: Math.random() * 0.4 + 0.2
+    }));
+    setDots(newDots);
+
+    // Setup IntersectionObserver for fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="lp">
-
-      <div className="lp-bg" aria-hidden>
-        <div className="lp-orb o1" />
-        <div className="lp-orb o2" />
-        <div className="lp-orb o3" />
-        <div className="lp-orb o4" />
-        <div className="lp-grid" />
+    <div className="kn-root">
+      <div className="global-pattern-bg">
+        {dots.map(dot => (
+          <div key={dot.id} className="dynamic-dot" style={{
+            left: dot.left,
+            top: dot.top,
+            animationDuration: dot.animationDuration,
+            animationDelay: dot.animationDelay,
+            opacity: dot.opacity
+          }}></div>
+        ))}
       </div>
-
-      {/* ── NAV ── */}
-      <nav className="lp-nav">
-        <div className="lp-nav-logo">
-          <div className="lp-logo-mark">{Icon.logoMark}</div>
-          <span className="lp-logo-name">Kalnirnay</span>
-        </div>
-        <div className="lp-nav-links">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
-          <a href="#stats">Stats</a>
-        </div>
-        <div className="lp-nav-cta">
-          <button className="lp-btn-ghost" onClick={onSignIn}>Sign In</button>
-          <button className="lp-btn-solid" onClick={onRegister}>Get Started</button>
+      <nav className={`kn-nav ${scrolled ? 'nav-scrolled' : ''}`}>
+        <div className="nav-container">
+          <span className="kn-nav-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-logo-icon">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Kaalnirnay
+          </span>
+          <div className="kn-nav-links">
+            <a href="#overview">Overview</a>
+            <a href="#features">Features</a>
+            <a href="https://t.me/kaalnirnay_bot" target="_blank" rel="noreferrer">Telegram Bot</a>
+          </div>
+          <div className="kn-nav-actions">
+            <button className="kn-btn-ghost" onClick={onSignIn}>Log in</button>
+            <button className="kn-btn-solid" onClick={onRegister}>Sign up</button>
+          </div>
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <section className="lp-hero">
-        <div className="lp-hero-pill">
-          <span className="lp-pill-dot" />
-          Live · Smart · Free
-        </div>
-
-        <h1 className="lp-hero-h1">
-          Never Miss<br />
-          <span className="lp-grad-text">What Matters</span>
-        </h1>
-
-        <p className="lp-hero-p">
-          College events, hackathons & deadlines — intelligently parsed,
-          beautifully organized, always on time.
-        </p>
-
-        <div className="lp-hero-btns">
-          <button className="lp-cta-primary" onClick={onRegister}>
-            Start for free {Icon.arrow}
-          </button>
-          <button className="lp-cta-ghost" onClick={onRegister}>
-            <span className="lp-live-dot" />
-            Explore dashboard
-          </button>
-        </div>
-
-        <div className="lp-hero-card">
-          <div className="lp-hero-card-inner">
-            <div className="lp-hstat">
-              <span className="lp-hstat-n">2.4k+</span>
-              <span className="lp-hstat-l">Events Tracked</span>
-            </div>
-            <div className="lp-hdiv" />
-            <div className="lp-hstat">
-              <span className="lp-hstat-n">98%</span>
-              <span className="lp-hstat-l">Parse Accuracy</span>
-            </div>
-            <div className="lp-hdiv" />
-            <div className="lp-hstat">
-              <span className="lp-hstat-n">Live</span>
-              <span className="lp-hstat-l">Sync Engine</span>
+      <main className="kn-hero" id="overview">
+        <div className="kn-hero-content">
+          <div className="kn-hero-text reveal-on-scroll">
+            <div className="pill-badge">Next-Gen Academic Planner</div>
+            <h1 className="kn-h1">
+              Your entire semester, <br/>
+              seamlessly mapped.
+            </h1>
+            <p className="kn-hero-p">
+              Step away from chaotic spreadsheets. Kaalnirnay unifies your lectures, deadlines, and study blocks into a powerful, frictionless workspace.
+            </p>
+            <div className="kn-hero-btns">
+              <button className="kn-cta-primary interactive-hover" onClick={onRegister}>Create workspace</button>
+              <button className="kn-cta-outline interactive-hover" onClick={onSignIn}>See how it works</button>
             </div>
           </div>
-        </div>
 
-        <div className="lp-scroll-hint">
-          <div className="lp-scroll-line" />
-          <span>scroll</span>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section className="lp-section" id="features">
-        <div className="lp-section-label">— Features</div>
-        <h2 className="lp-section-h2">Everything you need,<br /><span className="lp-grad-text">nothing you don't</span></h2>
-        <p className="lp-section-p">Built for students who move fast and hate missing out.</p>
-
-        <div className="lp-features-grid">
-          {features.map(f => (
-            <div className="lp-feat-card" key={f.title}>
-              <div className="lp-feat-icon">{f.icon}</div>
-              <h3 className="lp-feat-title">{f.title}</h3>
-              <p className="lp-feat-desc">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section className="lp-section lp-how" id="how">
-        <div className="lp-section-label">— How it works</div>
-        <h2 className="lp-section-h2">Three steps.<br /><span className="lp-grad-text">Zero friction.</span></h2>
-
-        <div className="lp-steps">
-          {steps.map((s, i) => (
-            <div className="lp-step" key={s.n}>
-              <div className="lp-step-num">{s.n}</div>
-              <div className="lp-step-body">
-                <h3 className="lp-step-title">{s.title}</h3>
-                <p className="lp-step-desc">{s.desc}</p>
+          <div className="kn-hero-visual reveal-on-scroll delay-1">
+            <div className="visual-panel main-panel">
+              <div className="panel-header">
+                <span className="header-dot"></span>
+                <span className="header-dot"></span>
+                <span className="header-dot"></span>
+                <span className="header-title">Today's Schedule</span>
               </div>
-              {i < 2 && <div className="lp-step-arrow">→</div>}
+              <div className="panel-body">
+                <div className="schedule-item">
+                  <div className="sch-time">09:00 AM</div>
+                  <div className="sch-name border-left-blue">Core Subject Lecture</div>
+                </div>
+                <div className="schedule-item">
+                  <div className="sch-time">11:30 AM</div>
+                  <div className="sch-name border-left-gray">Lab Session</div>
+                </div>
+                <div className="schedule-item">
+                  <div className="sch-time">02:00 PM</div>
+                  <div className="sch-name border-left-gray">Study Block (Library)</div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ── STATS ── */}
-      <section className="lp-stats-band" id="stats">
-        {stats.map(s => (
-          <div className="lp-band-stat" key={s.l}>
-            <span className="lp-band-n">{s.n}</span>
-            <span className="lp-band-l">{s.l}</span>
+            <div className="visual-panel side-panel side-panel-1">
+              <div className="panel-mini-header">Upcoming</div>
+              <div className="panel-mini-body">
+                <strong>Project Due</strong>
+                <span>Tomorrow, 11:59 PM</span>
+              </div>
+            </div>
+
+            <div className="visual-panel side-panel side-panel-2">
+               <div className="panel-mini-header">Result</div>
+               <div className="panel-mini-body">
+                 <strong>Quiz Graded</strong>
+                 <span>Score: 95%</span>
+               </div>
+            </div>
           </div>
-        ))}
-      </section>
+        </div>
+      </main>
 
-      {/* ── FINAL CTA ── */}
-      <section className="lp-final">
-        <div className="lp-final-orb" />
-        <div className="lp-section-label">— Get started today</div>
-        <h2 className="lp-final-h2">
-          Your next opportunity<br />
-          <span className="lp-grad-text">is already posted.</span>
-        </h2>
-        <p className="lp-final-p">Join students who never miss a deadline, hackathon, or prize event.</p>
-        <div className="lp-hero-btns">
-          <button className="lp-cta-primary lp-cta-lg" onClick={onRegister}>
-            Start for free {Icon.arrow}
-          </button>
-          <button className="lp-cta-ghost" onClick={onSignIn}>Sign In</button>
+      <section className="kn-showcase reveal-on-scroll" id="calendar">
+        <div className="showcase-container">
+          <div className="showcase-text">
+            <h2>Command your schedule.</h2>
+            <p>Our unified architecture automatically resolves conflicts between your syllabi and personal tasks. See the weeks ahead without the noise.</p>
+          </div>
+          <div className="showcase-visual" style={{alignItems: 'flex-start'}}>
+             <div className="mock-grid-ui" style={{width: '100%', padding: '0.5rem'}}>
+               <div className="mock-grid-header" style={{display:'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '1.1rem'}}>
+                 <span>This Week</span>
+                 <span style={{color: 'var(--text-secondary)', fontWeight: 500}}>5 Scheduled</span>
+               </div>
+               <div className="mock-grid-body" style={{gap: '1rem'}}>
+                 <div className="mg-col">
+                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>MON</span>
+                    <div className="mg-item h-1" style={{background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 600, color: '#fff'}}>Lecture</span></div>
+                 </div>
+                 <div className="mg-col">
+                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>TUE</span>
+                    <div className="mg-item h-2 mt-1" style={{background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 500, color: '#ccc'}}>Lab Work</span></div>
+                 </div>
+                 <div className="mg-col">
+                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>WED</span>
+                    <div className="mg-item h-3" style={{background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 600, color: '#fff'}}>Seminar</span></div>
+                 </div>
+                 <div className="mg-col">
+                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>THU</span>
+                    <div className="mg-item h-1 mt-2" style={{background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 500, color: '#ccc'}}>Review</span></div>
+                 </div>
+                 <div className="mg-col">
+                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>FRI</span>
+                 </div>
+               </div>
+             </div>
+          </div>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="lp-footer">
-        <div className="lp-footer-logo">
-          <div className="lp-logo-mark sm">{Icon.logoMarkSm}</div>
-          <span className="lp-logo-name">Kalnirnay</span>
+      <section className="kn-showcase showcase-reverse reveal-on-scroll" id="deadlines">
+        <div className="showcase-container">
+          <div className="showcase-text">
+            <h2>Never drop a deadline.</h2>
+            <p>Assign parameters to multi-stage projects. Our engine calculates micro-deadlines and pings your devices immediately if you fall behind.</p>
+          </div>
+          <div className="showcase-visual">
+            <div className="mock-list-ui" style={{padding: '0 1.5rem'}}>
+               <div className="ml-item" style={{marginBottom: '1.5rem'}}>
+                 <span className="ml-circle active" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
+                 <div style={{flex: 1, paddingLeft: '1rem'}}>
+                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)'}}>Submit Draft</span>
+                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Due in 2 Days</span>
+                 </div>
+               </div>
+               <div className="ml-item" style={{marginBottom: '1.5rem'}}>
+                 <span className="ml-circle" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
+                 <div style={{flex: 1, paddingLeft: '1rem'}}>
+                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa'}}>Peer Review</span>
+                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Pending</span>
+                 </div>
+               </div>
+               <div className="ml-item">
+                 <span className="ml-circle" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
+                 <div style={{flex: 1, paddingLeft: '1rem'}}>
+                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa'}}>Final Submission</span>
+                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Next Week</span>
+                 </div>
+               </div>
+            </div>
+          </div>
         </div>
-        <p className="lp-footer-copy">© 2025 Kalnirnay · Smart Event Intelligence</p>
+      </section>
+
+      <section className="kn-features" id="features">
+        <div className="features-container">
+          <div className="features-header reveal-on-scroll">
+             <h2>Engineered for clarity.</h2>
+             <p>No fluff, no glowing abstractions. Just powerful tools.</p>
+          </div>
+          
+          <div className="features-bento reveal-on-scroll delay-1">
+             <div className="feat-item border-right border-bottom">
+                <span className="material-symbols-outlined">grid_view</span>
+                <h3>Bento Planning</h3>
+                <p>Organize your semester via a high-density, monochrome grid.</p>
+             </div>
+             <div className="feat-item border-right border-bottom">
+                <span className="material-symbols-outlined">calendar_today</span>
+                <h3>Unified Schedule</h3>
+                <p>One unified calendar mapping timelines across all syllabi.</p>
+             </div>
+             <div className="feat-item border-bottom">
+                <span className="material-symbols-outlined">hourglass_empty</span>
+                <h3>Exam Countdowns</h3>
+                <p>Minimalistic timers focusing on the precise days leading up to finals.</p>
+             </div>
+             <div className="feat-item border-right">
+                <span className="material-symbols-outlined">checklist</span>
+                <h3>Smart Checklists</h3>
+                <p>Hierarchical task breaking, tracking strict sub-deadline parameters.</p>
+             </div>
+             <div className="feat-item border-right">
+                <span className="material-symbols-outlined">send</span>
+                <h3>Telegram Alerts</h3>
+                <p>Plain text pings integrating directly with your mobile workflow.</p>
+             </div>
+             <div className="feat-item">
+                <span className="material-symbols-outlined">sync</span>
+                <h3>Cross-Device</h3>
+                <p>Sub-millisecond sync across your laptop, tablet, and phone.</p>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="kn-footer reveal-on-scroll delay-1">
+        <div className="footer-top">
+          <div className="footer-brand">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Kaalnirnay
+          </div>
+          <div className="footer-links">
+             <a href="#overview">Overview</a>
+             <a href="#features">Features</a>
+             <button className="footer-btn" onClick={onSignIn}>Login</button>
+          </div>
+        </div>
+        <div className="footer-bottom">
+           <span>© 2026 Kaalnirnay.</span>
+           <span>System Status: Online</span>
+        </div>
       </footer>
-
     </div>
   )
 }
