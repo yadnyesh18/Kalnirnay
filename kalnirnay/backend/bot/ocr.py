@@ -6,7 +6,7 @@ import spacy
 import dateparser
 import re
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
 nlp = spacy.load("en_core_web_sm")
 
 _easy_reader = None

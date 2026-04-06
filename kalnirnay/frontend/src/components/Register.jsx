@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import './Register.css'
 
-const TELEGRAM_BOT = 'https://t.me/kaalnirnay_bot'
 const API = 'http://localhost:3000'
 const STEPS = ['Profile', 'Focus', 'Finish']
 
@@ -13,6 +12,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [createdUser, setCreatedUser] = useState(null)
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
@@ -23,16 +23,19 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
     e.preventDefault()
     setLoading(true)
     try {
-      // Register user via subscriptions endpoint
-      await fetch(`${API}/subscriptions`, {
+      const res = await fetch(`${API}/subscriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: form.email, // placeholder until Telegram links
+          telegram_id: form.email,
           username: form.email.split('@')[0],
+          email: form.email,
+          password: form.password,
         })
       })
-    } catch { /* non-blocking — account creation is Telegram-first */ }
+      const data = await res.json()
+      if (data.subscription) setCreatedUser(data.subscription)
+    } catch { /* non-blocking */ }
     setLoading(false)
     setSuccess(true)
   }
@@ -51,9 +54,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
           </button>
           <div className="rg-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
         </div>
-        <a href={TELEGRAM_BOT} target="_blank" rel="noreferrer" className="rg-help-btn">
-          <span className="material-symbols-outlined">help</span>
-        </a>
+
       </header>
 
       <main className="rg-main">
@@ -253,7 +254,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
             </div>
             <h3>Welcome, {form.name.split(' ')[0] || 'Scholar'}!</h3>
             <p>Your account is ready. You can now access your dashboard and sync events.</p>
-            <button className="rg-btn-primary" onClick={onSuccess} style={{marginTop: '1.5rem', width: '100%'}}>Go to Dashboard</button>
+            <button className="rg-btn-primary" onClick={() => onSuccess(createdUser)} style={{marginTop: '1.5rem', width: '100%'}}>Go to Dashboard</button>
           </div>
         </div>
       )}

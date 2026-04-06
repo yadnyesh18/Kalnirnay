@@ -233,8 +233,7 @@ body {
 .fc .fc-daygrid-day-number { color: var(--muted) !important; font-size: 0.82rem !important; text-decoration: none !important; }
 .fc .fc-day-today { background: rgba(249,115,22,0.05) !important; }
 .fc .fc-day-today .fc-daygrid-day-number { color: var(--accent) !important; font-weight: 700 !important; }
-.fc .fc-event { background: var(--accent) !important; border: none !important; border-radius: 5px !important; padding: 2px 6px !important; font-size: 0.75rem !important; font-weight: 500 !important; cursor: pointer !important; }
-.fc .fc-event:hover { background: var(--accent2) !important; transform: translateY(-1px); }
+.fc .fc-event { border: none !important; border-radius: 5px !important; padding: 0 !important; font-size: 0.75rem !important; font-weight: 500 !important; cursor: pointer !important; background: transparent !important; }
 .fc-theme-standard td, .fc-theme-standard th { border-color: var(--border) !important; }
 .fc-theme-standard .fc-scrollgrid { border-color: var(--border) !important; }
 
@@ -419,6 +418,73 @@ body {
   border-radius: 0;
   padding: 0;
   background: transparent;
+}
+
+/* ── Calendar legend ── */
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cal-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.cal-legend-dot.telegram { background: #f97316; }
+.cal-legend-dot.personal { background: #3B82F6; }
+.cal-legend-label { margin-right: 6px; }
+
+/* ── Add Event Modal ── */
+.add-event-modal {
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.25s ease;
+}
+
+.add-event-header {
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.add-event-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.add-event-date {
+  font-size: 0.8rem;
+  color: #6366f1;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.add-event-form { padding: 1.25rem 1.5rem; }
+
+.add-field { display: flex; flex-direction: column; gap: 5px; }
+
+.add-event-footer {
+  display: flex;
+  gap: 8px;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .add-event-grid { grid-template-columns: 1fr; }
 }
 
 /* ── Scrollbar ── */

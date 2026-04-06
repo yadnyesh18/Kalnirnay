@@ -2,24 +2,34 @@ const express  = require('express')
 const router   = express.Router()
 const supabase = require('../supabaseClient')
 
-// GET /events — fetch all events sorted by date, optionally filter by group_ids
+// GET /events — fetch events for a specific user
+// - Always includes their personal events (user_id match, no group_id)
+// - Includes group events from their subscribed groups
 router.get('/', async (req, res) => {
-  const { groups } = req.query; // e.g. ?groups=g1,g2
-  
-  let query = supabase
-    .from('events')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { groups, user_id } = req.query;
 
-  if (groups) {
-    const groupArray = groups.split(',');
-    query = query.in('group_id', groupArray);
+  if (!user_id) return res.json([]);
+
+  const groupArray = groups ? groups.split(',') : [];
+  const promises = [
+    supabase.from('events').select('*').is('group_id', null).order('created_at', { ascending: false })
+  ];
+
+  if (groupArray.length > 0) {
+    promises.push(
+      supabase.from('events').select('*').in('group_id', groupArray).order('created_at', { ascending: false })
+    );
   }
 
-  const { data, error } = await query;
+  const results = await Promise.all(promises);
+  for (const r of results) {
+    if (r.error) return res.status(500).json({ error: r.error.message });
+  }
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
+  const merged = results.flatMap(r => r.data || []);
+  const seen = new Set();
+  const deduped = merged.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+  res.json(deduped);
 })
 
 // GET /events/:id — fetch single event
@@ -34,13 +44,13 @@ router.get('/:id', async (req, res) => {
   res.json(data)
 })
 
-// POST /events — save new event from bot
+// POST /events — save new event (from bot or personal)
 router.post('/', async (req, res) => {
   const {
     title, date, time, venue, department,
     deadline, prize, domains, team_size,
     reg_link, contact, summary, ocr_engine, raw_text,
-    group_id
+    group_id, source, user_id
   } = req.body
 
   // Basic validation — title is required
@@ -84,7 +94,9 @@ router.post('/', async (req, res) => {
       deadline, prize,
       domains: domains || [],
       team_size, reg_link, contact,
-      summary, ocr_engine, raw_text, group_id
+      summary, ocr_engine, raw_text,
+      group_id: source === 'personal' ? null : (group_id || null),
+      source: source || 'telegram'
     }])
     .select()
     .single()

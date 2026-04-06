@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import './AuthPage.css'
 
-const TELEGRAM_BOT = 'https://t.me/kaalnirnay_bot'
 const API = 'http://localhost:3000'
-
-const TelegramIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 0C5.37 0 0 5.37 0 12C0 18.63 5.37 24 12 24C18.63 24 24 18.63 24 12C24 5.37 18.63 0 12 0ZM17.97 8.01L15.63 19.14C15.46 19.92 14.99 20.12 14.34 19.75L10.79 17.13L9.07 18.78C8.88 18.97 8.72 19.13 8.35 19.13L8.6 15.51L15.2 9.54C15.49 9.28 15.13 9.14 14.75 9.4L6.59 14.54L3.09 13.44C2.33 13.2 2.31 12.68 3.25 12.31L16.92 7.04C17.55 6.81 18.11 7.19 17.97 8.01Z" fill="white"/>
-  </svg>
-)
 
 export default function SignIn({ onBack, onSuccess, onRegister }) {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -17,19 +10,21 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
-  // Email/password login — calls real subscription lookup by username
   const submit = async e => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const username = form.email.split('@')[0]
-      const res = await fetch(`${API}/subscriptions/user/${username}`)
-      if (!res.ok) throw new Error('not_found')
+      const res = await fetch(`${API}/subscriptions/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password })
+      })
+      if (!res.ok) throw new Error('invalid')
       const user = await res.json()
       onSuccess?.(user)
     } catch {
-      setError('Account not found. Make sure you have linked Telegram first.')
+      setError('Invalid email or password.')
     } finally {
       setLoading(false)
     }
@@ -58,9 +53,6 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
           </button>
           <div className="si-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
         </div>
-        <a href={TELEGRAM_BOT} target="_blank" rel="noreferrer" className="si-help-btn">
-          <span className="material-symbols-outlined">help</span>
-        </a>
       </header>
 
       {/* ── MAIN ── */}

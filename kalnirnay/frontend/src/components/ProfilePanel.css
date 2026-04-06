@@ -1,26 +1,18 @@
-/* ── PROFILE PANEL ── */
 .pp-root {
-  width: 280px;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  background: #0f1930;
-  border: 1px solid rgba(64,72,93,0.4);
-  border-radius: 16px;
-  padding: 1.5rem;
-  height: fit-content;
-  position: sticky;
-  top: 80px;
+  gap: 0;
+  height: 100%;
 }
 
-/* Identity */
-.pp-identity {
+/* ── Header ── */
+.pp-header {
   display: flex;
   align-items: center;
   gap: 0.875rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid rgba(64,72,93,0.3);
+  padding: 0.5rem 0 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 1.25rem;
 }
 
 .pp-avatar {
@@ -34,34 +26,37 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+  font-family: 'Syne', sans-serif;
 }
 
 .pp-username {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #dee5ff;
+  color: #f1f0ed;
   letter-spacing: -0.01em;
 }
 
-.pp-role {
+.pp-email {
   font-size: 0.72rem;
-  color: #a3aac4;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: #8b8fa8;
   margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
 }
 
-/* Stats */
+/* ── Stats ── */
 .pp-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .pp-stat {
-  background: #141f38;
-  border: 1px solid rgba(64,72,93,0.3);
+  background: #181c2e;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
   padding: 0.75rem 0.5rem;
   text-align: center;
@@ -73,226 +68,89 @@
 .pp-stat-n {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #9fa7ff;
+  color: #f97316;
   line-height: 1;
-  font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+  font-family: 'Syne', sans-serif;
 }
 
 .pp-stat-l {
   font-size: 0.6rem;
-  color: #a3aac4;
+  color: #8b8fa8;
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
 
-/* Section */
-.pp-section {
+/* ── Menu ── */
+.pp-menu {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(64,72,93,0.3);
+  gap: 0.25rem;
+  flex: 1;
 }
 
-.pp-section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
+.pp-menu-label {
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #a3aac4;
+  color: #8b8fa8;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.pp-section-icon {
-  font-size: 0.9rem !important;
-  color: #9fa7ff;
-}
-
-/* Telegram linked state */
-.pp-tg-linked {
+.pp-menu-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(159,167,255,0.06);
-  border: 1px solid rgba(159,167,255,0.2);
+  padding: 0.75rem 0.875rem;
   border-radius: 10px;
-  padding: 0.875rem;
-}
-
-.pp-tg-check {
-  color: #9fa7ff;
-  font-size: 1.4rem !important;
-  flex-shrink: 0;
-}
-
-.pp-tg-linked-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #a3aac4;
-}
-
-.pp-tg-linked-val {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #dee5ff;
-  margin-top: 2px;
-}
-
-/* Telegram unlinked state */
-.pp-tg-desc {
-  font-size: 0.8rem;
-  color: #a3aac4;
-  line-height: 1.5;
-}
-
-.pp-tg-hint {
-  background: rgba(159,167,255,0.04);
-  border: 1px solid rgba(64,72,93,0.4);
-  border-radius: 10px;
-  padding: 0.875rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.pp-tg-open-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: #24A1DE;
-  color: #fff;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 700;
+  cursor: default;
+  transition: background 0.15s;
   text-decoration: none;
-  transition: opacity 0.2s;
-}
-.pp-tg-open-btn:hover { opacity: 0.88; }
-
-.pp-tg-hint-text {
-  font-size: 0.72rem;
-  color: #a3aac4;
-  line-height: 1.5;
-  text-align: center;
+  color: inherit;
 }
 
-.pp-tg-hint-text code {
-  font-family: monospace;
-  background: rgba(159,167,255,0.1);
-  color: #9fa7ff;
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
-  font-size: 0.9em;
+.pp-menu-item:hover {
+  background: rgba(255,255,255,0.04);
 }
 
-/* Form */
-.pp-tg-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.pp-tg-input-wrap {
-  position: relative;
-}
-
-.pp-tg-input-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #a3aac4;
-  font-size: 1rem !important;
-  pointer-events: none;
-  transition: color 0.2s;
-}
-
-.pp-tg-input-wrap:focus-within .pp-tg-input-icon {
-  color: #9fa7ff;
-}
-
-.pp-tg-input-wrap input {
-  width: 100%;
-  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
-  background: #192540;
-  border: none;
-  border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.85rem;
-  color: #dee5ff;
-  outline: none;
-  transition: background 0.2s, box-shadow 0.2s;
-}
-
-.pp-tg-input-wrap input::placeholder { color: #6d758c; }
-.pp-tg-input-wrap input:focus {
-  background: #1f2b49;
-  box-shadow: 0 0 0 2px rgba(159,167,255,0.35);
-}
-
-.pp-tg-submit {
-  width: 100%;
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #9fa7ff, #8d98ff);
-  color: #101b8b;
-  border: none;
-  border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 700;
+.pp-menu-item--link {
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+}
+
+.pp-menu-icon {
+  font-size: 1.1rem !important;
+  color: #8b8fa8;
+  flex-shrink: 0;
+  width: 20px;
   display: grid;
   place-items: center;
-  min-height: 40px;
-}
-.pp-tg-submit:hover { opacity: 0.9; }
-.pp-tg-submit:active { transform: scale(0.97); }
-.pp-tg-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Messages */
-.pp-msg {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  padding: 0.5rem 0.75rem;
-  border-radius: 7px;
-}
-.pp-msg--error {
-  color: #ff6e84;
-  background: rgba(255,110,132,0.08);
-  border: 1px solid rgba(255,110,132,0.2);
-}
-.pp-msg--success {
-  color: #4ade80;
-  background: rgba(74,222,128,0.08);
-  border: 1px solid rgba(74,222,128,0.2);
 }
 
-/* Groups */
-.pp-groups {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.pp-tg-icon {
+  color: #24A1DE;
 }
 
-.pp-group-tag {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #9fa7ff;
-  background: rgba(159,167,255,0.08);
-  border: 1px solid rgba(159,167,255,0.2);
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-family: monospace;
+.pp-menu-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #f1f0ed;
+  line-height: 1.2;
 }
 
-/* Logout */
+.pp-menu-sub {
+  font-size: 0.72rem;
+  color: #8b8fa8;
+  margin-top: 1px;
+}
+
+.pp-menu-arrow {
+  font-size: 0.85rem !important;
+  color: #8b8fa8;
+  margin-left: auto;
+}
+
+/* ── Logout ── */
 .pp-logout {
   display: flex;
   align-items: center;
@@ -301,46 +159,19 @@
   width: 100%;
   padding: 0.75rem;
   background: transparent;
-  border: 1px solid rgba(64,72,93,0.4);
-  border-radius: 8px;
-  color: #a3aac4;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  color: #8b8fa8;
   font-family: 'DM Sans', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, color 0.2s, border-color 0.2s;
-  margin-top: auto;
+  margin-top: 1rem;
 }
+
 .pp-logout:hover {
-  background: rgba(255,110,132,0.06);
-  border-color: rgba(255,110,132,0.3);
+  background: rgba(255, 80, 80, 0.06);
+  border-color: rgba(255, 80, 80, 0.3);
   color: #ff6e84;
-}
-
-/* Spinner */
-.pp-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(16,27,139,0.3);
-  border-top-color: #101b8b;
-  border-radius: 50%;
-  animation: pp-spin 0.7s linear infinite;
-  display: inline-block;
-}
-@keyframes pp-spin { to { transform: rotate(360deg); } }
-
-/* Responsive — collapse to top bar on mobile */
-@media (max-width: 900px) {
-  .pp-root {
-    width: 100%;
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-  }
-  .pp-identity { border-bottom: none; padding-bottom: 0; }
-  .pp-stats { grid-template-columns: repeat(3, auto); }
-  .pp-section { border-top: none; padding-top: 0; }
 }

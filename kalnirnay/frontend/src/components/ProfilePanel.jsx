@@ -1,14 +1,9 @@
-import { useState } from 'react'
 import './ProfilePanel.css'
 
 const TELEGRAM_BOT = 'https://t.me/kaalnirnay_bot'
-const API = 'http://localhost:3000'
 
-export default function ProfilePanel({ user, events, onLogout, onUserUpdate }) {
-  const [tgUsername, setTgUsername] = useState('')
-  const [linking, setLinking] = useState(false)
-  const [linkError, setLinkError] = useState('')
-  const [linkSuccess, setLinkSuccess] = useState('')
+export default function ProfilePanel({ user, events, onLogout }) {
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '??'
 
   const upcomingCount = events.filter(e => {
     if (!e.date) return false
@@ -18,49 +13,23 @@ export default function ProfilePanel({ user, events, onLogout, onUserUpdate }) {
 
   const withPrize = events.filter(e => e.prize).length
 
-  const linkTelegram = async e => {
-    e.preventDefault()
-    setLinkError('')
-    setLinkSuccess('')
-    setLinking(true)
-    try {
-      const clean = tgUsername.replace('@', '').trim()
-      const res = await fetch(`${API}/subscriptions/user/${clean}`)
-      if (!res.ok) throw new Error('not_found')
-      const updated = await res.json()
-      setLinkSuccess(`Linked! @${updated.username} is now connected.`)
-      setTgUsername('')
-      onUserUpdate?.(updated)
-    } catch {
-      setLinkError('Username not found. Send /join in your college group with @kaalnirnay_bot first.')
-    } finally {
-      setLinking(false)
-    }
-  }
-
-  const initials = user?.username
-    ? user.username.slice(0, 2).toUpperCase()
-    : '??'
-
-  const isTgLinked = !!user?.telegram_id
-
   return (
     <aside className="pp-root">
 
-      {/* Avatar + identity */}
-      <div className="pp-identity">
+      {/* ── Header ── */}
+      <div className="pp-header">
         <div className="pp-avatar">{initials}</div>
-        <div className="pp-identity-text">
+        <div>
           <p className="pp-username">@{user?.username || 'student'}</p>
-          <p className="pp-role">Student</p>
+          <p className="pp-email">{user?.email || user?.telegram_id || ''}</p>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* ── Stats ── */}
       <div className="pp-stats">
         <div className="pp-stat">
           <span className="pp-stat-n">{events.length}</span>
-          <span className="pp-stat-l">Total Events</span>
+          <span className="pp-stat-l">Total</span>
         </div>
         <div className="pp-stat">
           <span className="pp-stat-n">{upcomingCount}</span>
@@ -72,78 +41,53 @@ export default function ProfilePanel({ user, events, onLogout, onUserUpdate }) {
         </div>
       </div>
 
-      {/* Telegram section */}
-      <div className="pp-section">
-        <p className="pp-section-title">
-          <span className="material-symbols-outlined pp-section-icon">send</span>
-          Telegram
-        </p>
+      {/* ── Menu items ── */}
+      <nav className="pp-menu">
+        <div className="pp-menu-label">Account</div>
 
-        {isTgLinked ? (
-          <div className="pp-tg-linked">
-            <span className="material-symbols-outlined pp-tg-check">check_circle</span>
-            <div>
-              <p className="pp-tg-linked-label">Account linked</p>
-              <p className="pp-tg-linked-val">@{user.username}</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <p className="pp-tg-desc">
-              Link your Telegram to auto-sync events from your college groups.
-            </p>
-
-            {/* Step hint */}
-            <div className="pp-tg-hint">
-              <a href={TELEGRAM_BOT} target="_blank" rel="noreferrer" className="pp-tg-open-btn">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
-                Open @kaalnirnay_bot
-              </a>
-              <p className="pp-tg-hint-text">
-                Send <code>/start</code> then <code>/join</code> in your college group, then enter your username below.
-              </p>
-            </div>
-
-            <form className="pp-tg-form" onSubmit={linkTelegram}>
-              <div className="pp-tg-input-wrap">
-                <span className="material-symbols-outlined pp-tg-input-icon">alternate_email</span>
-                <input
-                  type="text"
-                  placeholder="your_telegram_username"
-                  value={tgUsername}
-                  onChange={e => setTgUsername(e.target.value)}
-                  required
-                />
-              </div>
-              <button className="pp-tg-submit" type="submit" disabled={linking}>
-                {linking
-                  ? <span className="pp-spinner" />
-                  : 'Link Account'}
-              </button>
-            </form>
-
-            {linkError && <p className="pp-msg pp-msg--error">{linkError}</p>}
-            {linkSuccess && <p className="pp-msg pp-msg--success">{linkSuccess}</p>}
-          </>
-        )}
-      </div>
-
-      {/* Groups */}
-      {user?.groups?.length > 0 && (
-        <div className="pp-section">
-          <p className="pp-section-title">
-            <span className="material-symbols-outlined pp-section-icon">group</span>
-            Linked Groups
-          </p>
-          <div className="pp-groups">
-            {user.groups.map(g => (
-              <span key={g} className="pp-group-tag">{g}</span>
-            ))}
+        <div className="pp-menu-item">
+          <span className="material-symbols-outlined pp-menu-icon">person</span>
+          <div>
+            <p className="pp-menu-title">Profile</p>
+            <p className="pp-menu-sub">@{user?.username || 'student'}</p>
           </div>
         </div>
-      )}
 
-      {/* Logout */}
+        <div className="pp-menu-item">
+          <span className="material-symbols-outlined pp-menu-icon">calendar_month</span>
+          <div>
+            <p className="pp-menu-title">My Calendar</p>
+            <p className="pp-menu-sub">{events.length} events tracked</p>
+          </div>
+        </div>
+
+        {user?.groups?.length > 0 && (
+          <div className="pp-menu-item">
+            <span className="material-symbols-outlined pp-menu-icon">group</span>
+            <div>
+              <p className="pp-menu-title">Linked Groups</p>
+              <p className="pp-menu-sub">{user.groups.length} group{user.groups.length > 1 ? 's' : ''}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="pp-menu-label" style={{ marginTop: '0.5rem' }}>Integrations</div>
+
+        <a href={TELEGRAM_BOT} target="_blank" rel="noreferrer" className="pp-menu-item pp-menu-item--link">
+          <span className="pp-menu-icon pp-tg-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 0C5.37 0 0 5.37 0 12C0 18.63 5.37 24 12 24C18.63 24 24 18.63 24 12C24 5.37 18.63 0 12 0ZM17.97 8.01L15.63 19.14C15.46 19.92 14.99 20.12 14.34 19.75L10.79 17.13L9.07 18.78C8.88 18.97 8.72 19.13 8.35 19.13L8.6 15.51L15.2 9.54C15.49 9.28 15.13 9.14 14.75 9.4L6.59 14.54L3.09 13.44C2.33 13.2 2.31 12.68 3.25 12.31L16.92 7.04C17.55 6.81 18.11 7.19 17.97 8.01Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <div>
+            <p className="pp-menu-title">Open Telegram Bot</p>
+            <p className="pp-menu-sub">@kaalnirnay_bot</p>
+          </div>
+          <span className="material-symbols-outlined pp-menu-arrow">open_in_new</span>
+        </a>
+      </nav>
+
+      {/* ── Logout ── */}
       <button className="pp-logout" onClick={onLogout}>
         <span className="material-symbols-outlined">logout</span>
         Sign Out

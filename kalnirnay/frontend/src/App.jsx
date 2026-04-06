@@ -66,8 +66,10 @@ function MainApp({ user, onLogout, onUserUpdate }) {
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      let url = `${API}/events`
-      if (user?.groups?.length > 0) url += `?groups=${user.groups.join(',')}`
+      const uid = user?.telegram_id
+      if (!uid) { setEvents([]); setLoading(false); return }
+      let url = `${API}/events?user_id=${encodeURIComponent(uid)}`
+      if (user?.groups?.length > 0) url += `&groups=${user.groups.join(',')}`
       const res = await axios.get(url)
       setEvents(res.data)
     } catch (err) {
@@ -108,7 +110,7 @@ function MainApp({ user, onLogout, onUserUpdate }) {
           </div>
         ) : (
           <>
-            <CalendarView events={events} onEventClick={setSelectedEvent} onTelegramSignIn={onUserUpdate} />
+            <CalendarView events={events} onEventClick={setSelectedEvent} onEventAdded={fetchEvents} user={user} />
             <div className="events-list">
               <h2 className="section-title">Your Group Events</h2>
               <div className="events-grid">
@@ -147,7 +149,6 @@ function MainApp({ user, onLogout, onUserUpdate }) {
               user={user}
               events={events}
               onLogout={() => { setShowProfile(false); onLogout() }}
-              onUserUpdate={onUserUpdate}
             />
           </div>
         </div>

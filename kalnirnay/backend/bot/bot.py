@@ -126,7 +126,8 @@ def build_reply(details: dict) -> str:
 
 # ── Image handler ────────────────────────────────────────────────
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    is_private = update.effective_chat.type == 'private'
+    chat_id = None if is_private else str(update.effective_chat.id)
 
     caption = update.message.caption or ""
     if should_ignore(caption):
@@ -141,6 +142,7 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     details = process_image(image_path)
     details["group_id"] = chat_id
+    details["source"] = "personal" if is_private else "telegram"
 
     raw_text = details.get("raw_text", "")
     if should_ignore(raw_text):
@@ -164,7 +166,8 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ── Text handler ─────────────────────────────────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    is_private = update.effective_chat.type == 'private'
+    chat_id = None if is_private else str(update.effective_chat.id)
     user_id = update.effective_user.id
     text    = update.message.text.strip() if update.message.text else ""
 
@@ -232,6 +235,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     details = process_text(text)
     details["group_id"] = chat_id
+    details["source"] = "personal" if is_private else "telegram"
 
     raw_text = details.get("raw_text", "")
     if should_ignore(raw_text):
@@ -246,6 +250,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=build_keyboard(key)
     )
 
+
+# ── Start Command Handler ─────────────────────────────────────────
+async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 *Welcome to Kaalnirnay Bot!*\n\n"
+        "I automatically detect and save events from posters and messages in your college groups.\n\n"
+        "*What you can do:*\n"
+        "• Send me an event poster image — I'll extract the details\n"
+        "• Send event text — I'll parse and save it\n"
+        "• Use /join in your college group to link it to your calendar\n\n"
+        "*Get started:*\n"
+        "1️⃣ Add me to your college Telegram group\n"
+        "2️⃣ Send /join in that group\n"
+        "3️⃣ Log in at the Kaalnirnay website to see your events",
+        parse_mode="Markdown"
+    )
 
 # ── Join Command Handler ───────────────────────────────────────────
 async def handle_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -336,6 +356,7 @@ def main():
     from telegram.ext import CommandHandler
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    app.add_handler(CommandHandler("start", handle_start))
     app.add_handler(CommandHandler("join", handle_join))
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
