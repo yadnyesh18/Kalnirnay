@@ -1,9 +1,12 @@
 import './HeroPage.css'
 import { useEffect, useState } from 'react'
 
-export default function HeroPage({ onSignIn, onRegister }) {
+const API = 'http://localhost:3000'
+
+export default function HeroPage({ onSignIn, onRegister, onTelegramLogin }) {
   const [scrolled, setScrolled] = useState(false);
   const [dots, setDots] = useState([]);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -56,12 +59,12 @@ export default function HeroPage({ onSignIn, onRegister }) {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-logo-icon">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
-            Kaalnirnay
+            Kalnirnay
           </span>
           <div className="kn-nav-links">
             <a href="#overview">Overview</a>
             <a href="#features">Features</a>
-            <a href="https://t.me/kaalnirnay_bot" target="_blank" rel="noreferrer">Telegram Bot</a>
+            <a href="https://web.telegram.org/k/#@kaalnirnay_bot" target="_blank" rel="noreferrer">Telegram Bot</a>
           </div>
           <div className="kn-nav-actions">
             <button className="kn-btn-ghost" onClick={onSignIn}>Log in</button>
@@ -75,11 +78,11 @@ export default function HeroPage({ onSignIn, onRegister }) {
           <div className="kn-hero-text reveal-on-scroll">
             <div className="pill-badge">Next-Gen Academic Planner</div>
             <h1 className="kn-h1">
-              Your entire semester, <br/>
+              Your entire semester, <br />
               seamlessly mapped.
             </h1>
             <p className="kn-hero-p">
-              Step away from chaotic spreadsheets. Kaalnirnay unifies your lectures, deadlines, and study blocks into a powerful, frictionless workspace.
+              Step away from chaotic spreadsheets. Kalnirnay unifies your lectures, deadlines, and study blocks into a powerful, frictionless workspace.
             </p>
             <div className="kn-hero-btns">
               <button className="kn-cta-primary interactive-hover" onClick={onRegister}>Create workspace</button>
@@ -120,11 +123,11 @@ export default function HeroPage({ onSignIn, onRegister }) {
             </div>
 
             <div className="visual-panel side-panel side-panel-2">
-               <div className="panel-mini-header">Result</div>
-               <div className="panel-mini-body">
-                 <strong>Quiz Graded</strong>
-                 <span>Score: 95%</span>
-               </div>
+              <div className="panel-mini-header">Result</div>
+              <div className="panel-mini-body">
+                <strong>Quiz Graded</strong>
+                <span>Score: 95%</span>
+              </div>
             </div>
           </div>
         </div>
@@ -136,34 +139,34 @@ export default function HeroPage({ onSignIn, onRegister }) {
             <h2>Command your schedule.</h2>
             <p>Our unified architecture automatically resolves conflicts between your syllabi and personal tasks. See the weeks ahead without the noise.</p>
           </div>
-          <div className="showcase-visual" style={{alignItems: 'flex-start'}}>
-             <div className="mock-grid-ui" style={{width: '100%', padding: '0.5rem'}}>
-               <div className="mock-grid-header" style={{display:'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '1.1rem'}}>
-                 <span>This Week</span>
-                 <span style={{color: 'var(--text-secondary)', fontWeight: 500}}>5 Scheduled</span>
-               </div>
-               <div className="mock-grid-body" style={{gap: '1rem'}}>
-                 <div className="mg-col">
-                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>MON</span>
-                    <div className="mg-item h-1" style={{background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 600, color: '#fff'}}>Lecture</span></div>
-                 </div>
-                 <div className="mg-col">
-                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>TUE</span>
-                    <div className="mg-item h-2 mt-1" style={{background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 500, color: '#ccc'}}>Lab Work</span></div>
-                 </div>
-                 <div className="mg-col">
-                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>WED</span>
-                    <div className="mg-item h-3" style={{background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 600, color: '#fff'}}>Seminar</span></div>
-                 </div>
-                 <div className="mg-col">
-                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>THU</span>
-                    <div className="mg-item h-1 mt-2" style={{background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px'}}><span style={{fontSize: '1rem', fontWeight: 500, color: '#ccc'}}>Review</span></div>
-                 </div>
-                 <div className="mg-col">
-                    <span style={{display:'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600}}>FRI</span>
-                 </div>
-               </div>
-             </div>
+          <div className="showcase-visual" style={{ alignItems: 'flex-start' }}>
+            <div className="mock-grid-ui" style={{ width: '100%', padding: '0.5rem' }}>
+              <div className="mock-grid-header" style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                <span>This Week</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>5 Scheduled</span>
+              </div>
+              <div className="mock-grid-body" style={{ gap: '1rem' }}>
+                <div className="mg-col">
+                  <span style={{ display: 'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>MON</span>
+                  <div className="mg-item h-1" style={{ background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px' }}><span style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>Lecture</span></div>
+                </div>
+                <div className="mg-col">
+                  <span style={{ display: 'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TUE</span>
+                  <div className="mg-item h-2 mt-1" style={{ background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px' }}><span style={{ fontSize: '1rem', fontWeight: 500, color: '#ccc' }}>Lab Work</span></div>
+                </div>
+                <div className="mg-col">
+                  <span style={{ display: 'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>WED</span>
+                  <div className="mg-item h-3" style={{ background: 'rgba(255,255,255,0.08)', borderLeft: '4px solid #fff', display: 'flex', alignItems: 'center', paddingLeft: '10px' }}><span style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>Seminar</span></div>
+                </div>
+                <div className="mg-col">
+                  <span style={{ display: 'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>THU</span>
+                  <div className="mg-item h-1 mt-2" style={{ background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #666', display: 'flex', alignItems: 'center', paddingLeft: '10px' }}><span style={{ fontSize: '1rem', fontWeight: 500, color: '#ccc' }}>Review</span></div>
+                </div>
+                <div className="mg-col">
+                  <span style={{ display: 'block', marginBottom: '12px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>FRI</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -175,28 +178,28 @@ export default function HeroPage({ onSignIn, onRegister }) {
             <p>Assign parameters to multi-stage projects. Our engine calculates micro-deadlines and pings your devices immediately if you fall behind.</p>
           </div>
           <div className="showcase-visual">
-            <div className="mock-list-ui" style={{padding: '0 1.5rem'}}>
-               <div className="ml-item" style={{marginBottom: '1.5rem'}}>
-                 <span className="ml-circle active" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
-                 <div style={{flex: 1, paddingLeft: '1rem'}}>
-                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)'}}>Submit Draft</span>
-                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Due in 2 Days</span>
-                 </div>
-               </div>
-               <div className="ml-item" style={{marginBottom: '1.5rem'}}>
-                 <span className="ml-circle" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
-                 <div style={{flex: 1, paddingLeft: '1rem'}}>
-                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa'}}>Peer Review</span>
-                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Pending</span>
-                 </div>
-               </div>
-               <div className="ml-item">
-                 <span className="ml-circle" style={{width: '28px', height: '28px', borderWidth: '3px'}}></span>
-                 <div style={{flex: 1, paddingLeft: '1rem'}}>
-                    <span style={{display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa'}}>Final Submission</span>
-                    <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)'}}>Next Week</span>
-                 </div>
-               </div>
+            <div className="mock-list-ui" style={{ padding: '0 1.5rem' }}>
+              <div className="ml-item" style={{ marginBottom: '1.5rem' }}>
+                <span className="ml-circle active" style={{ width: '28px', height: '28px', borderWidth: '3px' }}></span>
+                <div style={{ flex: 1, paddingLeft: '1rem' }}>
+                  <span style={{ display: 'block', fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>Submit Draft</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Due in 2 Days</span>
+                </div>
+              </div>
+              <div className="ml-item" style={{ marginBottom: '1.5rem' }}>
+                <span className="ml-circle" style={{ width: '28px', height: '28px', borderWidth: '3px' }}></span>
+                <div style={{ flex: 1, paddingLeft: '1rem' }}>
+                  <span style={{ display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa' }}>Peer Review</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Pending</span>
+                </div>
+              </div>
+              <div className="ml-item">
+                <span className="ml-circle" style={{ width: '28px', height: '28px', borderWidth: '3px' }}></span>
+                <div style={{ flex: 1, paddingLeft: '1rem' }}>
+                  <span style={{ display: 'block', fontSize: '1.3rem', fontWeight: 500, color: '#aaa' }}>Final Submission</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Next Week</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -205,41 +208,41 @@ export default function HeroPage({ onSignIn, onRegister }) {
       <section className="kn-features" id="features">
         <div className="features-container">
           <div className="features-header reveal-on-scroll">
-             <h2>Engineered for clarity.</h2>
-             <p>No fluff, no glowing abstractions. Just powerful tools.</p>
+            <h2>Engineered for clarity.</h2>
+            <p>No fluff, no glowing abstractions. Just powerful tools.</p>
           </div>
-          
+
           <div className="features-bento reveal-on-scroll delay-1">
-             <div className="feat-item border-right border-bottom">
-                <span className="material-symbols-outlined">grid_view</span>
-                <h3>Bento Planning</h3>
-                <p>Organize your semester via a high-density, monochrome grid.</p>
-             </div>
-             <div className="feat-item border-right border-bottom">
-                <span className="material-symbols-outlined">calendar_today</span>
-                <h3>Unified Schedule</h3>
-                <p>One unified calendar mapping timelines across all syllabi.</p>
-             </div>
-             <div className="feat-item border-bottom">
-                <span className="material-symbols-outlined">hourglass_empty</span>
-                <h3>Exam Countdowns</h3>
-                <p>Minimalistic timers focusing on the precise days leading up to finals.</p>
-             </div>
-             <div className="feat-item border-right">
-                <span className="material-symbols-outlined">checklist</span>
-                <h3>Smart Checklists</h3>
-                <p>Hierarchical task breaking, tracking strict sub-deadline parameters.</p>
-             </div>
-             <div className="feat-item border-right">
-                <span className="material-symbols-outlined">send</span>
-                <h3>Telegram Alerts</h3>
-                <p>Plain text pings integrating directly with your mobile workflow.</p>
-             </div>
-             <div className="feat-item">
-                <span className="material-symbols-outlined">sync</span>
-                <h3>Cross-Device</h3>
-                <p>Sub-millisecond sync across your laptop, tablet, and phone.</p>
-             </div>
+            <div className="feat-item border-right border-bottom">
+              <span className="material-symbols-outlined">grid_view</span>
+              <h3>Bento Planning</h3>
+              <p>Organize your semester via a high-density, monochrome grid.</p>
+            </div>
+            <div className="feat-item border-right border-bottom">
+              <span className="material-symbols-outlined">calendar_today</span>
+              <h3>Unified Schedule</h3>
+              <p>One unified calendar mapping timelines across all syllabi.</p>
+            </div>
+            <div className="feat-item border-bottom">
+              <span className="material-symbols-outlined">hourglass_empty</span>
+              <h3>Exam Countdowns</h3>
+              <p>Minimalistic timers focusing on the precise days leading up to finals.</p>
+            </div>
+            <div className="feat-item border-right">
+              <span className="material-symbols-outlined">checklist</span>
+              <h3>Smart Checklists</h3>
+              <p>Hierarchical task breaking, tracking strict sub-deadline parameters.</p>
+            </div>
+            <div className="feat-item border-right">
+              <span className="material-symbols-outlined">send</span>
+              <h3>Telegram Alerts</h3>
+              <p>Plain text pings integrating directly with your mobile workflow.</p>
+            </div>
+            <div className="feat-item">
+              <span className="material-symbols-outlined">sync</span>
+              <h3>Cross-Device</h3>
+              <p>Sub-millisecond sync across your laptop, tablet, and phone.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -247,22 +250,115 @@ export default function HeroPage({ onSignIn, onRegister }) {
       <footer className="kn-footer reveal-on-scroll delay-1">
         <div className="footer-top">
           <div className="footer-brand">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
-            Kaalnirnay
+            Kalnirnay
           </div>
           <div className="footer-links">
-             <a href="#overview">Overview</a>
-             <a href="#features">Features</a>
-             <button className="footer-btn" onClick={onSignIn}>Login</button>
+            <a href="#overview">Overview</a>
+            <a href="#features">Features</a>
+            <button className="footer-btn tg-connect-btn" onClick={() => setShowTelegramModal(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '6px' }}><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.94 8.13l-1.97 9.28c-.15.67-.54.83-1.1.52l-3.03-2.24-1.46 1.41c-.16.16-.3.3-.61.3l.22-3.07 5.58-5.04c.24-.22-.05-.34-.38-.13L8.69 13.7l-2.97-.93c-.65-.2-.66-.65.14-.96l11.6-4.47c.54-.2 1.01.13.83.96l.65-.17z" /></svg>
+              Connect your Telegram ID
+            </button>
           </div>
         </div>
         <div className="footer-bottom">
-           <span>© 2026 Kaalnirnay.</span>
-           <span>System Status: Online</span>
+          <span>© 2026 Kalnirnay.</span>
+          <span>System Status: Online</span>
         </div>
       </footer>
+
+      {/* Telegram Connect Modal */}
+      {showTelegramModal && (
+        <TelegramConnectModal
+          onClose={() => setShowTelegramModal(false)}
+          onSuccess={(userData) => {
+            setShowTelegramModal(false);
+            onTelegramLogin?.(userData);
+          }}
+        />
+      )}
     </div>
   )
+}
+
+function TelegramConnectModal({ onClose, onSuccess }) {
+  const [telegramId, setTelegramId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/users/telegram-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to connect. Please try again.');
+      } else {
+        onSuccess(data);
+      }
+    } catch {
+      setError('Network error. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="tg-modal-overlay" onClick={onClose}>
+      <div className="tg-modal" onClick={e => e.stopPropagation()}>
+        <button className="tg-modal-close" onClick={onClose}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M14 4L4 14M4 4l10 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <div className="tg-modal-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#29B6F6">
+            <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.94 8.13l-1.97 9.28c-.15.67-.54.83-1.1.52l-3.03-2.24-1.46 1.41c-.16.16-.3.3-.61.3l.22-3.07 5.58-5.04c.24-.22-.05-.34-.38-.13L8.69 13.7l-2.97-.93c-.65-.2-.66-.65.14-.96l11.6-4.47c.54-.2 1.01.13.83.96l.65-.17z" />
+          </svg>
+        </div>
+
+        <h2 className="tg-modal-title">Connect your Telegram</h2>
+        <p className="tg-modal-desc">
+          Enter your Telegram numeric ID to sync your group events to the calendar.
+          <br />
+          <span className="tg-modal-hint">
+            To find your ID, message <a href="https://web.telegram.org/k/#@userinfobot" target="_blank" rel="noreferrer">@userinfobot</a> on Telegram.
+          </span>
+        </p>
+
+        <form className="tg-modal-form" onSubmit={handleSubmit}>
+          <div className="tg-input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <input
+              type="text"
+              placeholder="@username"
+              value={telegramId}
+              onChange={e => setTelegramId(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="tg-modal-error">{error}</p>}
+
+          <button className="tg-modal-submit" type="submit" disabled={loading}>
+            {loading ? <span className="tg-spinner" /> : 'Connect & View Calendar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }

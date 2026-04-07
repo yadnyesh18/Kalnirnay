@@ -1,8 +1,30 @@
 edit button in telegram [DONE]
 notification testing 
-users login frontend 
+users login frontend [DONE]
 different calendars for different groups 
 merge multiple calendars for same user if user in different groups 
 how will the backend, frontend, bot, database run after closing my terminals 
-twilio 
-add ignore button 
+add ignore button [DONE]
+only admins should make changes  
+make group id dynamic 
+
+example scenario if im a user and i have my telegram and im into group 1, g2 ,g3 and all groups are important groups and i have the bot in all the groups so i want my all the groups information into my calendar 
+make groups to be dynamic 
+
+______________________________________________________________________________________ 
+keep the dates in just one fromat  
+change the dates from all codes and keep it same as dd/mm/yyyy 
+in 
+
+CalendarView.jsx
+ the upcoming events should be sorted like i should be able to do it manually 
+options should be like if i want to see my personal events and telegram groups events separatent or combined and if i choose any of it it should be sorted like the neareast event at the topmost position and then so on 
+in [DONE]
+
+CalendarView.jsx
+in the component called as upcoming(it should show the upcoming personal and also telegram events ) 
+remove the components showing total events and just keep groups and upcoming 
+in  
+
+CalendarView.jsx
+when i connect my telegram userid then it should not again show as connect your telegram user id... that component should disappear once user connects its telegram userid 

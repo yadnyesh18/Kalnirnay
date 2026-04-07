@@ -1,0 +1,10 @@
+cd kalnirnay/backend 
+venv\Scripts\activate
+cd bot
+python bot.py
+
+cd kalnirnay/backend/server
+>> node server.js
+
+cd kalniray/frontend
+>> npm run dev 

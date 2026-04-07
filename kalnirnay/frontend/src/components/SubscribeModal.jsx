@@ -16,7 +16,7 @@ export default function SubscribeModal({ onClose, apiUrl }) {
     setLoading(true)
     setError('')
     try {
-      await axios.post(`${apiUrl}/subscriptions`, {
+      await axios.post(`${apiUrl}/users`, {
         telegram_id: telegramId.trim(),
         username:    username.trim() || telegramId.trim()
       })

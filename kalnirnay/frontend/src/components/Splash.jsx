@@ -4,7 +4,7 @@ import './Splash.css'
 export default function Splash({ onDone }) {
   const [out, setOut] = useState(false)
   const [text, setText] = useState("")
-  const target = "KAALNIRNAY"
+  const target = "KALNIRNAY"
 
   useEffect(() => {
     // Decoding text effect

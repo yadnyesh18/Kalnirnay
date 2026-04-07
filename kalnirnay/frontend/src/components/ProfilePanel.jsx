@@ -1,17 +1,40 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import './ProfilePanel.css'
 
-const TELEGRAM_BOT = 'https://t.me/kaalnirnay_bot'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 export default function ProfilePanel({ user, events, onLogout }) {
-  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '??'
+  const [groupNames, setGroupNames] = useState({})
 
+  // Fetch group names whenever user.groups changes
+  useEffect(() => {
+    if (user?.groups?.length > 0) {
+      axios.get(`${API}/groups?ids=${user.groups.join(',')}`)
+        .then(res => {
+          const map = {}
+          res.data.forEach(g => { map[g.group_id] = g.group_name })
+          setGroupNames(map)
+        })
+        .catch(() => { })
+    }
+  }, [user?.groups])
+  // Use first two letters of full_name, then username, then email prefix
+  const displayName = user?.full_name || user?.username || user?.email?.split('@')[0] || 'Student'
+  const initials = displayName.slice(0, 2).toUpperCase()
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Only count upcoming events (today and after) — spec says "should not calculate events which are yesterday and before"
   const upcomingCount = events.filter(e => {
     if (!e.date) return false
     const d = new Date(e.date.split(' to ')[0])
-    return d >= new Date()
+    return d >= today
   }).length
 
-  const withPrize = events.filter(e => e.prize).length
+  const personalCount = events.filter(e => !e.group_id).length
+  const groupCount = events.filter(e => !!e.group_id).length
 
   return (
     <aside className="pp-root">
@@ -20,24 +43,24 @@ export default function ProfilePanel({ user, events, onLogout }) {
       <div className="pp-header">
         <div className="pp-avatar">{initials}</div>
         <div>
-          <p className="pp-username">@{user?.username || 'student'}</p>
-          <p className="pp-email">{user?.email || user?.telegram_id || ''}</p>
+          <p className="pp-username">{user?.full_name || user?.username || 'Student'}</p>
+          <p className="pp-email">{user?.email || ''}</p>
         </div>
       </div>
 
       {/* ── Stats ── */}
       <div className="pp-stats">
         <div className="pp-stat">
-          <span className="pp-stat-n">{events.length}</span>
-          <span className="pp-stat-l">Total</span>
-        </div>
-        <div className="pp-stat">
           <span className="pp-stat-n">{upcomingCount}</span>
           <span className="pp-stat-l">Upcoming</span>
         </div>
         <div className="pp-stat">
-          <span className="pp-stat-n">{withPrize}</span>
-          <span className="pp-stat-l">With Prize</span>
+          <span className="pp-stat-n">{personalCount}</span>
+          <span className="pp-stat-l">Personal</span>
+        </div>
+        <div className="pp-stat">
+          <span className="pp-stat-n">{groupCount}</span>
+          <span className="pp-stat-l">From Groups</span>
         </div>
       </div>
 
@@ -49,7 +72,15 @@ export default function ProfilePanel({ user, events, onLogout }) {
           <span className="material-symbols-outlined pp-menu-icon">person</span>
           <div>
             <p className="pp-menu-title">Profile</p>
-            <p className="pp-menu-sub">@{user?.username || 'student'}</p>
+            <p className="pp-menu-sub">{user?.full_name || user?.username || 'Student'}</p>
+          </div>
+        </div>
+
+        <div className="pp-menu-item">
+          <span className="material-symbols-outlined pp-menu-icon">alternate_email</span>
+          <div>
+            <p className="pp-menu-title">Email</p>
+            <p className="pp-menu-sub">{user?.email || 'Not set'}</p>
           </div>
         </div>
 
@@ -66,25 +97,34 @@ export default function ProfilePanel({ user, events, onLogout }) {
             <span className="material-symbols-outlined pp-menu-icon">group</span>
             <div>
               <p className="pp-menu-title">Linked Groups</p>
-              <p className="pp-menu-sub">{user.groups.length} group{user.groups.length > 1 ? 's' : ''}</p>
+              {user.groups.map(gid => (
+                <p key={gid} className="pp-menu-sub" style={{ margin: '2px 0' }}>
+                  • {groupNames[gid] || gid}
+                </p>
+              ))}
             </div>
           </div>
         )}
 
-        <div className="pp-menu-label" style={{ marginTop: '0.5rem' }}>Integrations</div>
-
-        <a href={TELEGRAM_BOT} target="_blank" rel="noreferrer" className="pp-menu-item pp-menu-item--link">
-          <span className="pp-menu-icon pp-tg-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 0C5.37 0 0 5.37 0 12C0 18.63 5.37 24 12 24C18.63 24 24 18.63 24 12C24 5.37 18.63 0 12 0ZM17.97 8.01L15.63 19.14C15.46 19.92 14.99 20.12 14.34 19.75L10.79 17.13L9.07 18.78C8.88 18.97 8.72 19.13 8.35 19.13L8.6 15.51L15.2 9.54C15.49 9.28 15.13 9.14 14.75 9.4L6.59 14.54L3.09 13.44C2.33 13.2 2.31 12.68 3.25 12.31L16.92 7.04C17.55 6.81 18.11 7.19 17.97 8.01Z" fill="currentColor"/>
-            </svg>
-          </span>
-          <div>
-            <p className="pp-menu-title">Open Telegram Bot</p>
-            <p className="pp-menu-sub">@kaalnirnay_bot</p>
+        {user?.telegram_id && (
+          <div className="pp-menu-item">
+            <span className="material-symbols-outlined pp-menu-icon">link</span>
+            <div>
+              <p className="pp-menu-title">Telegram Connected</p>
+              <p className="pp-menu-sub">@{user.telegram_username || user.username}</p>
+            </div>
           </div>
-          <span className="material-symbols-outlined pp-menu-arrow">open_in_new</span>
-        </a>
+        )}
+
+        {user?.university && (
+          <div className="pp-menu-item">
+            <span className="material-symbols-outlined pp-menu-icon">school</span>
+            <div>
+              <p className="pp-menu-title">University</p>
+              <p className="pp-menu-sub">{user.university} · {user.major || ''} · {user.year || ''}</p>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── Logout ── */}

@@ -22,6 +22,14 @@ export default function EventCard({ event, onClose }) {
               </p>
             )}
             <h2 className="modal-title">{event.title}</h2>
+            <span style={{
+              display: 'inline-block', marginTop: '6px', padding: '3px 10px',
+              borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600,
+              background: event.group_id ? 'rgba(59,130,246,0.15)' : 'rgba(249,115,22,0.15)',
+              color: event.group_id ? '#3B82F6' : '#f97316'
+            }}>
+              {event.group_id ? (event.group_name || 'Telegram Group') : 'Personal Event'}
+            </span>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>

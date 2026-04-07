@@ -4,7 +4,7 @@ import httpx
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from config import BOT_TOKEN
-from ocr import process_image, process_text
+from ocr import process_image, process_text, is_informational, extract_message_details, classify_message
 
 logging.basicConfig(format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,11 +31,26 @@ EVENT_KEYWORDS = [
     'march', 'april', 'may', 'june', 'july', 'august', 'september',
     'october', 'november', 'december', 'january', 'february',
     'prize', 'cash', 'venue', 'date', 'time', 'team', 'participate',
-    'eligibility', 'certificate', 'internship', 'opportunity'
+    'eligibility', 'certificate', 'internship', 'opportunity',
+    # Academic triggers
+    'assignment', 'timetable', 'schedule', 'lecture', 'lab',
+    'batch', 'exam', 'assessment', 'oral', 'practical',
+    'tomorrow', 'today', 'please note', 'kindly note',
+    'extra lab', 'file correction', 'attendance'
 ]
 
+# Category label mapping for reply messages
+CATEGORY_LABEL = {
+    'event': '[EVENT]',
+    'exam': '[EXAM]',
+    'assignment': '[ASSIGNMENT]',
+    'lab': '[LAB]',
+    'timetable': '[TIMETABLE]',
+    'notice': '[NOTICE]',
+}
 
-# ── API calls ────────────────────────────────────────────────────
+
+
 async def save_event(details: dict) -> dict:
     try:
         async with httpx.AsyncClient() as client:
@@ -50,11 +65,30 @@ async def save_event(details: dict) -> dict:
         return {"error": str(e)}
 
 
-async def subscribe_user(telegram_id: str, username: str, group_id: str = None) -> dict:
+async def register_group(group_id: str, group_name: str) -> dict:
+    """Upsert group info into the groups table."""
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{API_URL}/subscriptions",
+                f"{API_URL}/groups",
+                json={"group_id": group_id, "group_name": group_name},
+                timeout=10.0
+            )
+            return response.json()
+    except Exception as e:
+        logger.error(f"Failed to register group: {e}")
+        return {"error": str(e)}
+
+
+async def subscribe_user(telegram_id: str, username: str, group_id: str = None, group_name: str = None) -> dict:
+    try:
+        # If we have group info, register it first
+        if group_id and group_name:
+            await register_group(group_id, group_name)
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{API_URL}/users",
                 json={"telegram_id": telegram_id, "username": username, "group_id": group_id},
                 timeout=10.0
             )
@@ -80,7 +114,10 @@ def is_event_message(text: str) -> bool:
         return False
     text_lower = text.lower()
     matches = sum(1 for kw in EVENT_KEYWORDS if kw in text_lower)
-    return matches >= 2
+    if matches >= 2:
+        return True
+    # Also check via the smart text parser
+    return is_informational(text)
 
 
 def build_keyboard(key: str) -> InlineKeyboardMarkup:
@@ -92,12 +129,15 @@ def build_keyboard(key: str) -> InlineKeyboardMarkup:
 
 
 def build_reply(details: dict) -> str:
-    lines = ["*Kalnirnay — Event Detected*\n"]
+    category = details.get('_category', 'event')
+    tag = CATEGORY_LABEL.get(category, '[INFO]')
+    label = category.replace('_', ' ').title()
+    lines = [f"{tag} *Kalnirnay -- {label} Detected*\n"]
 
-    def add(label, key):
+    def add(lbl, key):
         val = details.get(key)
         if val:
-            lines.append(f"*{label}:* {val}")
+            lines.append(f"*{lbl}:* {val}")
 
     add("Title",      "title")
     add("Date",       "date")
@@ -128,6 +168,11 @@ def build_reply(details: dict) -> str:
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_private = update.effective_chat.type == 'private'
     chat_id = None if is_private else str(update.effective_chat.id)
+    group_name = None if is_private else (update.effective_chat.title or "Unknown Group")
+
+    # Auto-register the group whenever bot processes an image in it
+    if chat_id and group_name:
+        await register_group(chat_id, group_name)
 
     caption = update.message.caption or ""
     if should_ignore(caption):
@@ -168,8 +213,13 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_private = update.effective_chat.type == 'private'
     chat_id = None if is_private else str(update.effective_chat.id)
+    group_name = None if is_private else (update.effective_chat.title or "Unknown Group")
     user_id = update.effective_user.id
     text    = update.message.text.strip() if update.message.text else ""
+
+    # Auto-register the group whenever bot processes text in it
+    if chat_id and group_name:
+        await register_group(chat_id, group_name)
 
     if not text:
         return
@@ -233,19 +283,37 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("Analysing message, please wait...")
 
-    details = process_text(text)
+    # Use the smart text parser for all messages
+    details = extract_message_details(text)
+    category = details.get('_category', 'notice')
+
+    # For event-type messages, also try the OCR NLP extractor for richer data
+    if category == 'event':
+        ocr_details = process_text(text)
+        # Merge: prefer OCR details for event-specific fields, keep parser's title/category
+        for field in ['prize', 'team_size', 'domains', 'contact', 'department', 'deadline']:
+            if ocr_details.get(field) and not details.get(field):
+                details[field] = ocr_details[field]
+        # Prefer OCR title if it's not "Untitled Event"
+        if ocr_details.get('title') and ocr_details['title'] != 'Untitled Event':
+            details['title'] = ocr_details['title']
+
     details["group_id"] = chat_id
     details["source"] = "personal" if is_private else "telegram"
 
-    raw_text = details.get("raw_text", "")
+    # Remove internal category key before saving
+    clean_details = {k: v for k, v in details.items() if not k.startswith('_')}
+    clean_details["_category"] = category  # keep for reply formatting
+
+    raw_text = clean_details.get("raw_text", "")
     if should_ignore(raw_text):
         return
 
     key = str(update.message.message_id)
-    PENDING_EVENTS[key] = details
+    PENDING_EVENTS[key] = clean_details
 
     await update.message.reply_text(
-        build_reply(details),
+        build_reply(clean_details),
         parse_mode="Markdown",
         reply_markup=build_keyboard(key)
     )
@@ -254,16 +322,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Start Command Handler ─────────────────────────────────────────
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 *Welcome to Kaalnirnay Bot!*\n\n"
+        "*Welcome to Kaalnirnay Bot!*\n\n"
         "I automatically detect and save events from posters and messages in your college groups.\n\n"
         "*What you can do:*\n"
-        "• Send me an event poster image — I'll extract the details\n"
-        "• Send event text — I'll parse and save it\n"
-        "• Use /join in your college group to link it to your calendar\n\n"
+        "- Send me an event poster image -- I'll extract the details\n"
+        "- Send event text -- I'll parse and save it\n"
+        "- Use /join in your college group to link it to your calendar\n\n"
         "*Get started:*\n"
-        "1️⃣ Add me to your college Telegram group\n"
-        "2️⃣ Send /join in that group\n"
-        "3️⃣ Log in at the Kaalnirnay website to see your events",
+        "1. Add me to your college Telegram group\n"
+        "2. Send /join in that group\n"
+        "3. Log in at the Kaalnirnay website to see your events",
         parse_mode="Markdown"
     )
 
@@ -272,12 +340,13 @@ async def handle_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     user_id = update.effective_user.id
     username = update.effective_user.username or str(user_id)
+    group_name = update.effective_chat.title or "Unknown Group"
     
-    res = await subscribe_user(str(user_id), username, chat_id)
+    res = await subscribe_user(str(user_id), username, chat_id, group_name)
     if "error" in res:
         await update.message.reply_text("Failed to link group to your account. Ensure backend is running.")
     else:
-        await update.message.reply_text(f"Successfully linked @{username} to this group's calendar!")
+        await update.message.reply_text(f"[OK] @{username} linked to *{group_name}*! All events from this group will appear on your calendar.", parse_mode="Markdown")
 
 # ── Callback handler ─────────────────────────────────────────────
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,7 +363,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("Session expired.", show_alert=True)
             return
 
-        result = await save_event(details)
+        result = await save_event({k: v for k, v in details.items() if not k.startswith('_')})
 
         await query.edit_message_reply_markup(reply_markup=None)
 
@@ -354,7 +423,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Main ─────────────────────────────────────────────────────────
 def main():
     from telegram.ext import CommandHandler
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
+        .write_timeout(30.0)
+        .pool_timeout(30.0)
+        .get_updates_connect_timeout(30.0)
+        .get_updates_read_timeout(30.0)
+        .get_updates_write_timeout(30.0)
+        .get_updates_pool_timeout(30.0)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", handle_start))
     app.add_handler(CommandHandler("join", handle_join))
@@ -362,8 +444,10 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
-    app.run_polling()
+    # bootstrap_retries=5 means retry 5 times before giving up
+    app.run_polling(bootstrap_retries=5)
 
 
 if __name__ == "__main__":
     main()
+

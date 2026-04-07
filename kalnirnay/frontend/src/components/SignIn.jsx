@@ -15,16 +15,16 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch(`${API}/subscriptions/login`, {
+      const res = await fetch(`${API}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password })
       })
-      if (!res.ok) throw new Error('invalid')
-      const user = await res.json()
-      onSuccess?.(user)
-    } catch {
-      setError('Invalid email or password.')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Login failed')
+      onSuccess?.(data)
+    } catch (err) {
+      setError(err.message || 'Invalid email or password.')
     } finally {
       setLoading(false)
     }
@@ -51,7 +51,7 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
           <button onClick={onBack} style={{background: 'none', border: 'none', color: 'var(--text-secondary, #888)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'inherit', fontSize: '0.9rem', padding: 0}}>
              <span className="material-symbols-outlined" style={{fontSize: '1.1rem'}}>arrow_back</span> Back
           </button>
-          <div className="si-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
+          <div className="si-brand" style={{cursor: 'default'}}>Kalnirnay</div>
         </div>
       </header>
 
@@ -108,7 +108,7 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
 
             {/* Switch */}
             <p className="si-switch">
-              New to Kaalnirnay?{' '}
+              New to Kalnirnay?{' '}
               <button className="si-link" onClick={onRegister ?? onBack}>Create an account</button>
             </p>
           </div>

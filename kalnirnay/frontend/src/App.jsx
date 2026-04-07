@@ -27,6 +27,7 @@ export default function App() {
     <HeroPage
       onSignIn={() => setPage('signin')}
       onRegister={() => setPage('register')}
+      onTelegramLogin={handleSuccess}
     />
   )
 
@@ -55,18 +56,33 @@ export default function App() {
   )
 }
 
+// Universal date parser: handles "DD MM YYYY", "DD/MM/YYYY", "DD-MM-YYYY", and ISO
+function parseDateToISO(d) {
+  if (!d) return null
+  const m = d.trim().match(/^(\d{1,2})[\s/\-](\d{1,2})[\s/\-](\d{4})$/)
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`
+  return d
+}
+function dateObj(raw) {
+  if (!raw) return null
+  const iso = parseDateToISO(raw.split(' to ')[0].trim())
+  if (!iso) return null
+  const d = new Date(iso)
+  return isNaN(d) ? null : d
+}
+
 function MainApp({ user, onLogout, onUserUpdate }) {
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showProfile, setShowProfile] = useState(false)
-
+  const [upcomingFilter, setUpcomingFilter] = useState('combined')
   useEffect(() => { fetchEvents() }, [user])
 
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      const uid = user?.telegram_id
+      const uid = user?.telegram_id || user?.email
       if (!uid) { setEvents([]); setLoading(false); return }
       let url = `${API}/events?user_id=${encodeURIComponent(uid)}`
       if (user?.groups?.length > 0) url += `&groups=${user.groups.join(',')}`
@@ -79,6 +95,44 @@ function MainApp({ user, onLogout, onUserUpdate }) {
     }
   }
 
+  // Split events into upcoming and past
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const upcomingEvents = events
+    .filter(e => {
+      if (upcomingFilter === 'personal' && e.group_id) return false
+      if (upcomingFilter === 'telegram' && !e.group_id) return false
+
+      if (!e.date) return true
+      const d = dateObj(e.date)
+      return !d || d >= today
+    })
+    .sort((a, b) => {
+      const da = dateObj(a.date) || new Date('9999-12-31')
+      const db = dateObj(b.date) || new Date('9999-12-31')
+      return da - db
+    })
+
+  const pastEvents = events
+    .filter(e => {
+      if (!e.date) return false
+      const d = dateObj(e.date)
+      return d && d < today
+    })
+    .sort((a, b) => {
+      const da = dateObj(a.date)
+      const db = dateObj(b.date)
+      return db - da
+    })
+
+  // Get display name: prefer full_name, then username, then email prefix
+  const displayName = user?.full_name
+    ? user.full_name.split(' ')[0]
+    : user?.username
+    ? user.username
+    : user?.email?.split('@')[0] || ''
+
   return (
     <div className="app">
       <Navbar
@@ -90,15 +144,15 @@ function MainApp({ user, onLogout, onUserUpdate }) {
 
       <main className="main">
         <div className="dashboard-header">
-          <h2>Welcome back{user?.username ? `, @${user.username}` : ''}!</h2>
+          <h2>Welcome back{displayName ? `, ${displayName}` : ''}!</h2>
           <div className="dashboard-stats">
             <div className="stat">
-              <span className="stat-num">{events.length}</span>
-              <span className="stat-label">Events tracked</span>
+              <span className="stat-num">{upcomingEvents.length}</span>
+              <span className="stat-label">Upcoming</span>
             </div>
             <div className="stat">
-              <span className="stat-num">{events.filter(e => e.deadline).length}</span>
-              <span className="stat-label">With deadlines</span>
+              <span className="stat-num">{user?.groups?.length || 0}</span>
+              <span className="stat-label">Groups</span>
             </div>
           </div>
         </div>
@@ -110,14 +164,36 @@ function MainApp({ user, onLogout, onUserUpdate }) {
           </div>
         ) : (
           <>
-            <CalendarView events={events} onEventClick={setSelectedEvent} onEventAdded={fetchEvents} user={user} />
+            <CalendarView events={events} onEventClick={setSelectedEvent} onEventAdded={fetchEvents} user={user} onTelegramConnect={(userData) => onUserUpdate(userData)} />
+
+            {/* Upcoming Events */}
             <div className="events-list">
-              <h2 className="section-title">Your Group Events</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                <h2 className="section-title" style={{ margin: 0 }}>Upcoming Events</h2>
+                <select
+                  value={upcomingFilter}
+                  onChange={e => setUpcomingFilter(e.target.value)}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-card, #1a1a2e)',
+                    color: 'var(--text-primary, #fff)',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="combined">All Events</option>
+                  <option value="personal">Personal Only</option>
+                  <option value="telegram">Telegram Only</option>
+                </select>
+              </div>
               <div className="events-grid">
-                {events.length === 0 ? (
-                  <p className="empty">No events yet. Send a poster to your Telegram group!</p>
+                {upcomingEvents.length === 0 ? (
+                  <p className="empty">No upcoming events. Send a poster to your Telegram group or add a personal event!</p>
                 ) : (
-                  events.map(event => (
+                  upcomingEvents.map(event => (
                     <EventListItem
                       key={event.id}
                       event={event}
@@ -127,6 +203,22 @@ function MainApp({ user, onLogout, onUserUpdate }) {
                 )}
               </div>
             </div>
+
+            {/* Past Events */}
+            {pastEvents.length > 0 && (
+              <div className="events-list" style={{ opacity: 0.7 }}>
+                <h2 className="section-title">Past Events</h2>
+                <div className="events-grid">
+                  {pastEvents.map(event => (
+                    <EventListItem
+                      key={event.id}
+                      event={event}
+                      onClick={() => setSelectedEvent(event)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>
@@ -158,18 +250,22 @@ function MainApp({ user, onLogout, onUserUpdate }) {
 }
 
 function EventListItem({ event, onClick }) {
-  const isPast = event.date && new Date(event.date.split(' to ')[0]) < new Date()
+  const isPast = event.date && dateObj(event.date) && dateObj(event.date) < new Date()
+  const isPersonal = !event.group_id
 
   return (
     <div className={`event-item ${isPast ? 'past' : ''}`} onClick={onClick}>
       <div className="event-item-left">
-        <div className="event-dot" />
+        <div className="event-dot" style={{ background: isPersonal ? '#f97316' : '#3B82F6' }} />
         <div>
           <h3 className="event-item-title">{event.title}</h3>
           {event.department && <p className="event-item-dept">{event.department}</p>}
         </div>
       </div>
       <div className="event-item-right">
+        <span className="event-source-badge" style={{ background: isPersonal ? 'rgba(249,115,22,0.15)' : 'rgba(59,130,246,0.15)', color: isPersonal ? '#f97316' : '#3B82F6', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+          {isPersonal ? 'Personal' : (event.group_name || 'Group')}
+        </span>
         {event.date && <span className="event-date-badge">{event.date}</span>}
         {event.prize && <span className="event-prize-badge">Prize</span>}
         {event.domains?.length > 0 && (

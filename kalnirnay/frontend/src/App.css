@@ -434,8 +434,8 @@ body {
   border-radius: 3px;
   flex-shrink: 0;
 }
-.cal-legend-dot.telegram { background: #f97316; }
-.cal-legend-dot.personal { background: #3B82F6; }
+.cal-legend-dot.telegram { background: #3B82F6; }
+.cal-legend-dot.personal { background: #f97316; }
 .cal-legend-label { margin-right: 6px; }
 
 /* ── Add Event Modal ── */

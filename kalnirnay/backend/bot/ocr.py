@@ -6,7 +6,17 @@ import spacy
 import dateparser
 import re
 
-pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
+import platform
+import os
+
+# Auto-detect Tesseract path: Windows vs macOS/Linux
+if platform.system() == 'Windows':
+    _tess_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    if os.path.exists(_tess_path):
+        pytesseract.pytesseract.tesseract_cmd = _tess_path
+else:
+    # macOS (Homebrew) / Linux
+    pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
 nlp = spacy.load("en_core_web_sm")
 
 _easy_reader = None
@@ -382,10 +392,304 @@ def extract_details(text, engine="unknown"):
     print("-------------------------\n")
     return result
 
-# ── Public ───────────────────────────────────────────────────────
+# ── Public: Image processing ─────────────────────────────────────
 def process_image(image_path):
     text, engine = get_best_text(image_path)
     return extract_details(text, engine)
 
 def process_text(text):
     return extract_details(text, "text")
+
+
+# ══════════════════════════════════════════════════════════════════
+# TEXT MESSAGE PARSER — handles assignments, timetable changes,
+# lab schedules, exams, events, and general notices.
+# Everything is pattern-based and dynamic.
+# ══════════════════════════════════════════════════════════════════
+
+from datetime import datetime, timedelta
+
+# ── Message classification keywords (weighted) ───────────────────
+CATEGORY_SIGNALS = {
+    'event': [
+        (r'\b(?:hackathon|codeathon|workshop|seminar|webinar|fest|competition|contest)\b', 5),
+        (r'\b(?:register|registration|rsvp|sign\s*up)\b', 4),
+        (r'(?:prize\s*pool|prizes?|goodies|certificates?)\b', 3),
+        (r'\b(?:team|members?\s+per\s+team|cross.?departmental)\b', 2),
+        (r'\b(?:rounds?|round\s*\d)\b', 2),
+        (r'https?://\S+', 2),
+    ],
+    'exam': [
+        (r'\b(?:internal\s+assessment|IA\s*[-]?\s*(?:I{1,3}|[1-3]))\b', 5),
+        (r'\b(?:exam|examination|end\s*sem|endsem)\b', 4),
+        (r'\b(?:oral|practical|viva|oral\s+practical)\b', 4),
+        (r'\btimetable\b.*\b(?:assessment|exam|oral|practical)\b', 5),
+    ],
+    'assignment': [
+        (r'\b(?:assignment|submission|submit|due\s+date)\b', 5),
+        (r'\b(?:file\s+correction|miniproject|project\s+report)\b', 4),
+        (r'\b(?:contents?\s+of\s+the\s+file|index|tutorial\s+sheets?)\b', 3),
+    ],
+    'lab': [
+        (r'\b(?:extra\s+lab|lab\s+session|lab\s+scheduled)\b', 5),
+        (r'\b(?:batch\s+[A-Z]\d|[A-Z]\d\s+batch)\b', 3),
+        (r'\blab\b.*\b(?:start|wind\s*up|sharp)\b', 3),
+    ],
+    'timetable': [
+        (r'\b(?:timetable|schedule|lecture\s+schedule)\b', 5),
+        (r'\b(?:slight\s+change|change\s+in.*timetable)\b', 5),
+        (r'\b(?:tomorrow.s?\s+lecture|today.s?\s+timetable)\b', 4),
+        (r'\b(?:remains?\s+unchanged)\b', 3),
+    ],
+    'notice': [
+        (r'\b(?:please\s+note|kindly\s+note|note\s+that|attention)\b', 3),
+        (r'\b(?:dear\s+students|all\s+(?:the\s+)?students)\b', 2),
+    ],
+}
+
+_MSG_MIN_SCORE = 3
+
+_IGNORE_PATTERNS = [
+    r'^(?:ok|okay|thanks|thank\s*you|yes|no|sure|done|noted|good|great|nice|lol|haha)[\s!.]*$',
+    r'^(?:hi|hello|hey|gm|good\s+morning|good\s+night|bye)[\s!.]*$',
+    r'^\S+$',
+]
+
+
+def _msg_score(text):
+    score = 0
+    text_lower = text.lower()
+    for patterns in CATEGORY_SIGNALS.values():
+        for pattern, weight in patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                score += weight
+    if re.search(r'\b(?:tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', text_lower):
+        score += 2
+    MTHS = r'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec'
+    if re.search(rf'\b\d{{1,2}}(?:st|nd|rd|th)?\s+(?:{MTHS})', text, re.IGNORECASE):
+        score += 2
+    if re.search(r'\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b', text_lower):
+        score += 1
+    if re.search(r'\b(?:venue|room|lab|classroom)\s*:?\s*\d', text_lower):
+        score += 1
+    if len(text) < 50:
+        score -= 2
+    return score
+
+
+def is_informational(text):
+    """Check if a text message contains actionable info worth saving."""
+    if not text or len(text.strip()) < 30:
+        return False
+    text_clean = text.strip()
+    for pat in _IGNORE_PATTERNS:
+        if re.match(pat, text_clean, re.IGNORECASE):
+            return False
+    return _msg_score(text_clean) >= _MSG_MIN_SCORE
+
+
+def classify_message(text):
+    """Classify a message into: event, exam, assignment, lab, timetable, notice."""
+    scores = {}
+    text_lower = text.lower()
+    for category, patterns in CATEGORY_SIGNALS.items():
+        total = 0
+        for pattern, weight in patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                total += weight
+        scores[category] = total
+    best = max(scores, key=scores.get)
+    if scores[best] >= _MSG_MIN_SCORE:
+        return best
+    if re.search(r'\b(?:tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', text_lower):
+        return 'notice'
+    MTHS = r'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec'
+    if re.search(rf'\b\d{{1,2}}(?:st|nd|rd|th)?\s+(?:{MTHS})', text, re.IGNORECASE):
+        return 'notice'
+    return 'notice'
+
+
+def _msg_generate_title(text, category):
+    """Auto-generate a concise title from message content."""
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+
+    if category == 'event':
+        for line in lines[:10]:
+            clean = re.sub(r'[^a-zA-Z0-9\s\'\-!:,.]', '', line).strip()
+            if not clean:
+                continue
+            if re.match(r'^[A-Z][A-Z\s\'\-!]+$', clean) and 3 < len(clean) < 50:
+                return clean.title()
+            m = re.match(r'^(.+?)\s+is\s+(?:finally\s+)?here', clean, re.IGNORECASE)
+            if m:
+                return m.group(1).strip()
+
+    if category == 'exam':
+        m = re.search(r'(Internal\s+Assessment\s*(?:I{1,3}|[1-3])?|Oral\s+Practical|End\s*Sem(?:ester)?)', text, re.IGNORECASE)
+        if m:
+            return m.group(1).strip().title()
+
+    if category == 'assignment':
+        m = re.search(r'([\w\s]+?assignment\s*\d*|file\s+correction|miniproject\s+report)', text, re.IGNORECASE)
+        if m:
+            return m.group(1).strip().title()
+
+    if category == 'lab':
+        batch = ''
+        m_batch = re.search(r'([A-Z]\d)\s+batch|batch\s+([A-Z]\d)', text, re.IGNORECASE)
+        if m_batch:
+            batch = f" ({(m_batch.group(1) or m_batch.group(2)).upper()})"
+        m_lab = re.search(r'(?:extra\s+)?lab.*?(?:for\s+)?([\w\s]+?)(?:\s+lab|\s+tomorrow|\s+on\s)', text, re.IGNORECASE)
+        if m_lab:
+            lab_name = m_lab.group(1).strip()
+            if len(lab_name) < 30:
+                return f"{lab_name} Lab{batch}".strip().title()
+        return f"Extra Lab Session{batch}"
+
+    if category == 'timetable':
+        if re.search(r'change', text, re.IGNORECASE):
+            return "Timetable Change"
+        return "Lecture Schedule Update"
+
+    for line in lines:
+        clean = re.sub(r'[^\w\s\-\':,]', '', line).strip()
+        if len(clean) > 10 and len(clean) < 60 and re.search(r'[a-zA-Z]', clean):
+            return clean[:50]
+    return "Notice"
+
+
+def extract_message_details(text):
+    """Extract structured data from a text message. Returns event-compatible dict."""
+    category = classify_message(text)
+    MTHS = r'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec'
+
+    # ── Date extraction ─────────────────────────────────────────
+    date_found = None
+    m = re.search(rf'(?:starting\s+from|from|on)\s+(\d{{1,2}}(?:st|nd|rd|th)?\s+(?:{MTHS})(?:[,\s]+\d{{4}})?)', text, re.IGNORECASE)
+    if m:
+        date_found = parse_date(m.group(1))
+    if not date_found:
+        if re.search(r'\btomorrow\b', text, re.IGNORECASE):
+            date_found = (datetime.now() + timedelta(days=1)).strftime("%d %m %Y")
+        elif re.search(r'\btoday\b', text, re.IGNORECASE):
+            date_found = datetime.now().strftime("%d %m %Y")
+    if not date_found:
+        m = re.search(r'(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*\((\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{1,2}(?:st|nd|rd|th)?\s+\w+)\)', text, re.IGNORECASE)
+        if m:
+            date_found = parse_date(m.group(1))
+    if not date_found:
+        m = re.search(r'\((\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\)', text)
+        if m:
+            date_found = parse_date(m.group(1))
+    if not date_found:
+        m = re.search(rf'\b(\d{{1,2}}(?:st|nd|rd|th)?\s+(?:{MTHS})(?:[,\s]+\d{{4}})?)\b', text, re.IGNORECASE)
+        if m:
+            date_found = parse_date(m.group(1))
+    if not date_found:
+        m = re.search(r'\b(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4})\b', text)
+        if m:
+            date_found = parse_date(m.group(1))
+
+    # ── Time extraction ─────────────────────────────────────────
+    time_found = None
+    m = re.search(r'(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*[-to]+\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?)', text, re.IGNORECASE)
+    if m:
+        time_found = m.group(1).strip()
+    if not time_found:
+        m = re.search(r'(?:at|by)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))', text, re.IGNORECASE)
+        if m:
+            time_found = m.group(1).strip()
+
+    # ── Venue extraction ────────────────────────────────────────
+    venue = None
+    m = re.search(r'(?:venue|location|room|classroom|lab)\s*:?\s*(\d{2,4}[A-Za-z]?)', text, re.IGNORECASE)
+    if m:
+        venue = m.group(0).strip()
+    if not venue:
+        m = re.search(r'\bin\s+(?:lab\s+)?(\d{3}[A-Za-z]?)\b', text, re.IGNORECASE)
+        if m:
+            venue = m.group(1).strip()
+    if not venue:
+        m = re.search(r'(?:in|at)\s+((?:lab|room|classroom|hall)\s*[-\s]?\d{2,4}[A-Za-z]?)', text, re.IGNORECASE)
+        if m:
+            venue = m.group(1).strip().title()
+
+    # ── Registration link ───────────────────────────────────────
+    reg_link = None
+    m = re.search(r'(https?://\S+)', text)
+    if m:
+        reg_link = m.group(1).strip().rstrip(')')
+
+    # ── Batch info for summary ──────────────────────────────────
+    batches = re.findall(r'\b([A-Z]\d)\s*(?:batch|[-:])', text, re.IGNORECASE)
+    if not batches:
+        batches = re.findall(r'\bbatch\s+([A-Z]\d)\b', text, re.IGNORECASE)
+    if not batches:
+        m = re.search(r'([A-Z]\d(?:\s*,\s*[A-Z]\d)+)', text)
+        if m:
+            batches = re.findall(r'[A-Z]\d', m.group(1))
+
+    # ── Schedule slots ──────────────────────────────────────────
+    schedule_lines = []
+    for line in text.split('\n'):
+        line = line.strip()
+        if re.search(r'\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*[-]\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?', line, re.IGNORECASE):
+            if len(line) > 5:
+                schedule_lines.append(line)
+        elif re.search(r'\d{1,2}:\d{2}\s*(?:am|pm)', line, re.IGNORECASE) and re.search(r'[a-zA-Z]{2,}', line):
+            schedule_lines.append(line)
+
+    # ── Summary ─────────────────────────────────────────────────
+    summary_parts = []
+    if batches:
+        summary_parts.append(f"Batches: {', '.join(b.upper() for b in batches)}")
+    if schedule_lines:
+        summary_parts.append("Schedule: " + " | ".join(schedule_lines[:4]))
+    elif len(text) > 50:
+        meaningful = []
+        for line in text.split('\n'):
+            clean = re.sub(r'[^\w\s\-\':,.!?@/()]', '', line).strip()
+            if len(clean) > 15 and re.search(r'[a-zA-Z]{3,}', clean):
+                meaningful.append(clean)
+            if len(meaningful) >= 3:
+                break
+        if meaningful:
+            summary_parts.append('; '.join(meaningful))
+    summary = ' | '.join(summary_parts) if summary_parts else text[:200].strip()
+
+    # ── Title ───────────────────────────────────────────────────
+    title = _msg_generate_title(text, category)
+
+    # ── Prize (for events) ──────────────────────────────────────
+    prize = None
+    if category == 'event':
+        m = re.search(r'(?:prize\s*pool|prizes?\s*worth?)\s*:?\s*(?:Rs\.?|Rs)\s*([\d,]+)', text, re.IGNORECASE)
+        if m:
+            val = m.group(1).replace(',', '')
+            if val.isdigit():
+                prize = f"Rs.{int(val):,}"
+
+    # ── Team size (for events) ──────────────────────────────────
+    team_size = None
+    if category == 'event':
+        m = re.search(r'(\d+)\s*members?\s+per\s+team', text, re.IGNORECASE)
+        if m:
+            team_size = m.group(1)
+
+    return {
+        "title": title,
+        "date": date_found,
+        "time": time_found,
+        "venue": venue,
+        "summary": summary,
+        "reg_link": reg_link,
+        "prize": prize,
+        "team_size": team_size,
+        "department": None,
+        "deadline": None,
+        "domains": None,
+        "contact": None,
+        "ocr_engine": "text_parser",
+        "raw_text": text.strip(),
+        "_category": category,
+    }

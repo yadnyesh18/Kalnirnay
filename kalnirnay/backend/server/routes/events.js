@@ -1,10 +1,11 @@
-const express  = require('express')
-const router   = express.Router()
+const express = require('express')
+const router = express.Router()
 const supabase = require('../supabaseClient')
 
 // GET /events — fetch events for a specific user
-// - Always includes their personal events (user_id match, no group_id)
-// - Includes group events from their subscribed groups
+// - Personal events: filtered by user_id (only YOUR personal events)
+// - Group events: from subscribed groups
+// - Returns group_name from groups table via LEFT JOIN
 router.get('/', async (req, res) => {
   const { groups, user_id } = req.query;
 
@@ -12,7 +13,8 @@ router.get('/', async (req, res) => {
 
   const groupArray = groups ? groups.split(',') : [];
   const promises = [
-    supabase.from('events').select('*').is('group_id', null).order('created_at', { ascending: false })
+    // Personal events: belong to THIS user only
+    supabase.from('events').select('*').is('group_id', null).eq('user_id', user_id).order('created_at', { ascending: false })
   ];
 
   if (groupArray.length > 0) {
@@ -29,7 +31,27 @@ router.get('/', async (req, res) => {
   const merged = results.flatMap(r => r.data || []);
   const seen = new Set();
   const deduped = merged.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
-  res.json(deduped);
+
+  // Fetch group names for all group_ids in the results
+  const groupIds = [...new Set(deduped.filter(e => e.group_id).map(e => e.group_id))];
+  let groupMap = {};
+  if (groupIds.length > 0) {
+    const { data: groupData } = await supabase
+      .from('groups')
+      .select('group_id, group_name')
+      .in('group_id', groupIds);
+    if (groupData) {
+      groupMap = Object.fromEntries(groupData.map(g => [g.group_id, g.group_name]));
+    }
+  }
+
+  // Attach group_name to each event
+  const enriched = deduped.map(e => ({
+    ...e,
+    group_name: e.group_id ? (groupMap[e.group_id] || null) : null
+  }));
+
+  res.json(enriched);
 })
 
 // GET /events/:id — fetch single event
@@ -68,10 +90,10 @@ router.post('/', async (req, res) => {
   if (existingEvents && existingEvents.length > 0) {
     // Check for "similar" event: if titles share a significant substring
     const newTitleClean = title.toLowerCase().trim()
-    
+
     for (const ev of existingEvents) {
       const existingTitleClean = ev.title.toLowerCase().trim()
-      
+
       // If one title is entirely contained within the other, or they are very similar
       if (
         newTitleClean === existingTitleClean ||
@@ -96,7 +118,8 @@ router.post('/', async (req, res) => {
       team_size, reg_link, contact,
       summary, ocr_engine, raw_text,
       group_id: source === 'personal' ? null : (group_id || null),
-      source: source || 'telegram'
+      source: source || 'telegram',
+      user_id: user_id || null
     }])
     .select()
     .single()

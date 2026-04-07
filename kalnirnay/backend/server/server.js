@@ -3,7 +3,8 @@ const express = require('express')
 const cors    = require('cors')
 
 const eventsRouter        = require('./routes/events')
-const subscriptionsRouter = require('./routes/subscriptions')
+const usersRouter         = require('./routes/users')
+const groupsRouter        = require('./routes/groups')
 
 const app  = express()
 const PORT = process.env.PORT || 3000
@@ -13,7 +14,8 @@ app.use(express.json())
 
 // Routes
 app.use('/events',        eventsRouter)
-app.use('/subscriptions', subscriptionsRouter)
+app.use('/users',         usersRouter)
+app.use('/groups',        groupsRouter)
 
 // Health check
 app.get('/', (req, res) => {

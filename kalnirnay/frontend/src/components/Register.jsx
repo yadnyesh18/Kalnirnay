@@ -23,21 +23,27 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch(`${API}/subscriptions`, {
+      const res = await fetch(`${API}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: form.email,
-          username: form.email.split('@')[0],
-          email: form.email,
-          password: form.password,
+          email:      form.email,
+          password:   form.password,
+          full_name:  form.name,
+          university: form.university,
+          major:      form.major,
+          year:       form.year,
+          program:    form.program,
         })
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Registration failed')
       if (data.subscription) setCreatedUser(data.subscription)
-    } catch { /* non-blocking */ }
+      setSuccess(true)
+    } catch (err) {
+      alert(err.message)
+    }
     setLoading(false)
-    setSuccess(true)
   }
 
   return (
@@ -52,7 +58,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
           <button onClick={onBack} style={{background: 'none', border: 'none', color: 'var(--text-secondary, #888)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'inherit', fontSize: '0.9rem', padding: 0}}>
              <span className="material-symbols-outlined" style={{fontSize: '1.1rem'}}>arrow_back</span> Back
           </button>
-          <div className="rg-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
+          <div className="rg-brand" style={{cursor: 'default'}}>Kalnirnay</div>
         </div>
 
       </header>
@@ -224,7 +230,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
                 </div>
                 <div>
                   <h4>Built for Students</h4>
-                  <p>Join 12,000+ students using Kaalnirnay to track events, hackathons, and deadlines.</p>
+                  <p>Join 12,000+ students using Kalnirnay to track events, hackathons, and deadlines.</p>
                 </div>
               </div>
 
