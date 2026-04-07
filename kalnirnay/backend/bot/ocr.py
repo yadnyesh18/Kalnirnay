@@ -344,7 +344,7 @@ def extract_details(text, engine="unknown"):
     np_ = re.findall(r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*[:\s]\s*\(?\+?(\d[\d\s]{9,12})\)?', text)
     np_ = [(n, p) for n, p in np_ if n.lower() not in SPONSOR_NAMES and len(n) > 2]
     if np_:
-        contact = ', '.join([f"{n.strip()}: {re.sub(r'\\s+','',p).strip()}" for n,p in np_[:2]])
+        contact = ', '.join([n.strip() + ': ' + re.sub(r'\s+', '', p).strip() for n, p in np_[:2]])
     if not contact:
         np2 = re.findall(r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[:\s]+(?:\+\d{1,2}\s*)?([\d\s]{10,13})', text)
         np2 = [(n, p) for n, p in np2 if n.lower() not in SPONSOR_NAMES]
