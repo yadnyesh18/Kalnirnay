@@ -1,6 +1,8 @@
 import os
 import logging
+import warnings
 import httpx
+warnings.filterwarnings('ignore', message='.*pin_memory.*')
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from config import BOT_TOKEN
