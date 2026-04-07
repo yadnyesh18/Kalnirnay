@@ -11,11 +11,15 @@ const PORT = process.env.PORT || 3000
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173']
+  : []
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+    // Allow requests with no origin (server-to-server, curl, browser direct)
+    if (!origin) return callback(null, true)
+    // If no ALLOWED_ORIGINS set, allow all
+    if (allowedOrigins.length === 0) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
     callback(new Error('Not allowed by CORS'))
   },
   credentials: true
