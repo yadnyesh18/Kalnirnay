@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './AuthPage.css'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 export default function SignIn({ onBack, onSuccess, onRegister }) {
   const [form, setForm] = useState({ email: '', password: '' })

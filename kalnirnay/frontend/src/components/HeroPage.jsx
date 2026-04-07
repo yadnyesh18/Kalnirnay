@@ -1,7 +1,7 @@
 import './HeroPage.css'
 import { useEffect, useState } from 'react'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 export default function HeroPage({ onSignIn, onRegister, onTelegramLogin }) {
   const [scrolled, setScrolled] = useState(false);

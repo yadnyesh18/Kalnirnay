@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './ProfilePanel.css'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 export default function ProfilePanel({ user, events, onLogout }) {
   const [groupNames, setGroupNames] = useState({})
