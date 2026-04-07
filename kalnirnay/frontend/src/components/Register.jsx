@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './Register.css'
 
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const STEPS = ['Profile', 'Focus', 'Finish']
 
 export default function Register({ onBack, onSuccess, onSignIn }) {

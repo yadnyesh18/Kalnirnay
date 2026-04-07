@@ -1,5 +1,6 @@
-const express = require('express')
-const router = express.Router()
+const express  = require('express')
+const router   = express.Router()
+const bcrypt   = require('bcryptjs')
 const supabase = require('../supabaseClient')
 
 // GET /users — list all users
@@ -60,9 +61,11 @@ router.post('/', async (req, res) => {
     return res.status(409).json({ error: 'An account with this email already exists. Please log in.' })
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10)
+
   const insertData = {
     email,
-    password,
+    password: hashedPassword,
     full_name: full_name || null,
     university: university || null,
     major: major || null,
@@ -98,7 +101,8 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Account not found. Please register first.' })
   }
 
-  if (data.password !== password) {
+  const passwordMatch = await bcrypt.compare(password, data.password)
+  if (!passwordMatch) {
     return res.status(401).json({ error: 'Incorrect password.' })
   }
 

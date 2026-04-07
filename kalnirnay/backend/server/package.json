@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [],
   "author": "",
@@ -11,10 +15,9 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.99.3",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "node": "^25.8.1",
-    "server.js": "^1.0.0"
+    "express": "^5.2.1"
   }
 }

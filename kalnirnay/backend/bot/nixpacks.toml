@@ -1,0 +1,8 @@
+[phases.setup]
+aptPkgs = ["tesseract-ocr", "tesseract-ocr-eng", "libgl1", "libglib2.0-0"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt", "python -m spacy download en_core_web_sm"]
+
+[start]
+cmd = "python bot.py"

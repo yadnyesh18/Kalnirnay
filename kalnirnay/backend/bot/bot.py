@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_images")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-API_URL = "http://localhost:3000"
+API_URL = os.getenv("API_URL", "http://localhost:3000")
 
 # In-memory stores
 PENDING_EVENTS = {}

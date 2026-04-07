@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const EMPTY_FORM = { title: '', summary: '' }
 

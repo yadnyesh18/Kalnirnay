@@ -15,8 +15,11 @@ if platform.system() == 'Windows':
     if os.path.exists(_tess_path):
         pytesseract.pytesseract.tesseract_cmd = _tess_path
 else:
-    # macOS (Homebrew) / Linux
-    pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
+    # Check common paths: Railway/Linux, macOS Homebrew (Apple Silicon & Intel)
+    for _path in ['/usr/bin/tesseract', '/usr/local/bin/tesseract', '/opt/homebrew/bin/tesseract']:
+        if os.path.exists(_path):
+            pytesseract.pytesseract.tesseract_cmd = _path
+            break
 nlp = spacy.load("en_core_web_sm")
 
 _easy_reader = None

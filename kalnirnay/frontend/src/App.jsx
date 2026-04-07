@@ -10,14 +10,23 @@ import Splash from './components/Splash'
 import axios from 'axios'
 import './App.css'
 
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 export default function App() {
-  const [page, setPage] = useState('splash')
-  const [user, setUser] = useState(null)
+  const [page, setPage] = useState(() => {
+    const saved = localStorage.getItem('kn_user')
+    return saved ? 'app' : 'splash'
+  })
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kn_user')
+      return saved ? JSON.parse(saved) : null
+    } catch { return null }
+  })
 
   const handleSuccess = (userData) => {
     setUser(userData || null)
+    localStorage.setItem('kn_user', JSON.stringify(userData))
     setPage('app')
   }
 
@@ -50,8 +59,8 @@ export default function App() {
   return (
     <MainApp
       user={user}
-      onLogout={() => { setUser(null); setPage('hero') }}
-      onUserUpdate={(updated) => setUser(updated)}
+      onLogout={() => { setUser(null); localStorage.removeItem('kn_user'); setPage('hero') }}
+      onUserUpdate={(updated) => { setUser(updated); localStorage.setItem('kn_user', JSON.stringify(updated)) }}
     />
   )
 }
@@ -240,7 +249,7 @@ function MainApp({ user, onLogout, onUserUpdate }) {
             <ProfilePanel
               user={user}
               events={events}
-              onLogout={() => { setShowProfile(false); onLogout() }}
+              onLogout={() => { setShowProfile(false); localStorage.removeItem('kn_user'); onLogout() }}
             />
           </div>
         </div>
