@@ -1,6 +1,8 @@
 import os
+import re
 import logging
 import httpx
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from config import BOT_TOKEN
@@ -51,18 +53,78 @@ CATEGORY_LABEL = {
 
 
 
+# ── Date helpers ─────────────────────────────────────────────────
+def normalize_date(date_str: str) -> str:
+    """Convert 'DD MM YYYY' or 'DD-MM-YYYY' to 'YYYY-MM-DD' for database storage."""
+    if not date_str:
+        return date_str
+    date_str = date_str.strip()
+    for fmt in ("%d %m %Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return date_str  # return as-is if no format matched
+
+
+def display_date(date_str: str) -> str:
+    """Convert any date to 'DD-MM-YYYY' for display in bot messages."""
+    if not date_str:
+        return date_str
+    date_str = date_str.strip()
+    for fmt in ("%Y-%m-%d", "%d %m %Y", "%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(date_str, fmt).strftime("%d-%m-%Y")
+        except ValueError:
+            continue
+    return date_str
+
+
+def split_date_range(date_str: str) -> list:
+    """Split 'DD MM YYYY to DD MM YYYY' into a list of normalized dates.
+    If single date, returns a list with one element."""
+    if not date_str:
+        return [None]
+    # Match 'DD MM YYYY to DD MM YYYY' pattern
+    m = re.match(r'^(.+?)\s+to\s+(.+?)$', date_str.strip(), re.IGNORECASE)
+    if m:
+        d1 = normalize_date(m.group(1).strip())
+        d2 = normalize_date(m.group(2).strip())
+        if d1 and d2 and d1 != d2:
+            return [d1, d2]
+        return [d1]
+    return [normalize_date(date_str)]
+
+
 async def save_event(details: dict) -> dict:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{API_URL}/events",
-                json=details,
-                timeout=10.0
-            )
-            return response.json()
-    except Exception as e:
-        logger.error(f"Failed to save event: {e}")
-        return {"error": str(e)}
+    """Save event(s) to backend. If date is a range, saves one event per date."""
+    date_raw = details.get("date", "")
+    dates = split_date_range(date_raw)
+
+    results = []
+    for d in dates:
+        event_copy = dict(details)
+        event_copy["date"] = d
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{API_URL}/events",
+                    json=event_copy,
+                    timeout=10.0
+                )
+                results.append(response.json())
+        except Exception as e:
+            logger.error(f"Failed to save event: {e}")
+            results.append({"error": str(e)})
+
+    # If only one date, return its result directly
+    if len(results) == 1:
+        return results[0]
+    # If multi-day, return a combined result
+    errors = [r for r in results if "error" in r]
+    if errors and len(errors) == len(results):
+        return errors[0]  # all failed
+    return {"message": f"Event saved on {len(results)} dates", "results": results}
 
 
 async def register_group(group_id: str, group_name: str) -> dict:
@@ -134,17 +196,29 @@ def build_reply(details: dict) -> str:
     label = category.replace('_', ' ').title()
     lines = [f"{tag} *Kalnirnay -- {label} Detected*\n"]
 
-    def add(lbl, key):
+    def add(lbl, key, formatter=None):
         val = details.get(key)
         if val:
-            lines.append(f"*{lbl}:* {val}")
+            display_val = formatter(val) if formatter else val
+            lines.append(f"*{lbl}:* {display_val}")
+
+    # Format date for display: show range nicely if present
+    def format_date_display(date_val):
+        if not date_val:
+            return date_val
+        m = re.match(r'^(.+?)\s+to\s+(.+?)$', str(date_val).strip(), re.IGNORECASE)
+        if m:
+            d1 = display_date(m.group(1).strip())
+            d2 = display_date(m.group(2).strip())
+            return f"{d1} to {d2}"
+        return display_date(date_val)
 
     add("Title",      "title")
-    add("Date",       "date")
+    add("Date",       "date",       format_date_display)
     add("Time",       "time")
     add("Venue",      "venue")
     add("Department", "department")
-    add("Deadline",   "deadline")
+    add("Deadline",   "deadline",   lambda v: display_date(v))
     add("Prize Pool", "prize")
     add("Team Size",  "team_size")
     add("Register",   "reg_link")
@@ -160,6 +234,11 @@ def build_reply(details: dict) -> str:
 
     if not details.get("date"):
         lines.append("*Date:* Not detected")
+
+    # Show multi-day notice
+    date_raw = details.get("date", "")
+    if date_raw and re.search(r'\bto\b', str(date_raw), re.IGNORECASE):
+        lines.append("\n_📅 Multi-day event — will be added on each date separately_")
 
     return "\n".join(lines)
 
@@ -234,10 +313,24 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         lines = text.split('\n')
-        allowed = {
-            'title', 'date', 'time', 'venue', 'deadline',
-            'prize', 'contact', 'department', 'team_size',
-            'reg_link', 'summary', 'domains'
+
+        # Map display labels → internal field names (matches edit block + build_reply)
+        LABEL_TO_FIELD = {
+            'title': 'title',
+            'date': 'date',
+            'time': 'time',
+            'venue': 'venue',
+            'department': 'department',
+            'deadline': 'deadline',
+            'prize': 'prize',
+            'prize pool': 'prize',
+            'team size': 'team_size',
+            'team_size': 'team_size',
+            'register': 'reg_link',
+            'reg_link': 'reg_link',
+            'contact': 'contact',
+            'domains': 'domains',
+            'summary': 'summary',
         }
 
         updated_any = False
@@ -246,11 +339,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ':' not in line:
                 continue
             field, value = line.split(':', 1)
-            field = field.strip().lower()
+            field_key = LABEL_TO_FIELD.get(field.strip().lower())
             value = value.strip()
 
-            if field in allowed:
-                details[field] = value
+            if field_key and value:
+                details[field_key] = value
                 updated_any = True
 
         if not updated_any:
@@ -368,9 +461,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_reply_markup(reply_markup=None)
 
         if "error" in result:
-            await query.message.reply_text("Failed to save.")
+            if "Duplicate" in result.get("error", "") or "already exists" in result.get("message", ""):
+                await query.message.reply_text("Event already exists in calendar!")
+            else:
+                await query.message.reply_text(f"Failed to save: {result.get('error', 'Unknown error')}")
+        elif "results" in result:
+            # Multi-day event — report how many were saved
+            saved = sum(1 for r in result["results"] if "error" not in r)
+            total = len(result["results"])
+            if saved == total:
+                await query.message.reply_text(f"✅ Added to calendar on {saved} dates!")
+            else:
+                await query.message.reply_text(f"Saved on {saved}/{total} dates (some may already exist).")
         else:
-            await query.message.reply_text("Added to calendar!")
+            await query.message.reply_text("✅ Added to calendar!")
 
         PENDING_EVENTS.pop(key, None)
         EDITING_USERS.pop(user_id, None)
@@ -388,17 +492,28 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         EDITING_USERS[user_id] = key
         await query.answer()
 
-        DISPLAY_FIELDS = [
-            'title','date','time','venue','department','deadline',
-            'prize','team_size','reg_link','contact','domains','summary'
+        # Use same labels as build_reply so user sees exact same format
+        EDIT_FIELDS = [
+            ('Title',      'title'),
+            ('Date',       'date'),
+            ('Time',       'time'),
+            ('Venue',      'venue'),
+            ('Department', 'department'),
+            ('Deadline',   'deadline'),
+            ('Prize Pool', 'prize'),
+            ('Team Size',  'team_size'),
+            ('Register',   'reg_link'),
+            ('Contact',    'contact'),
+            ('Domains',    'domains'),
+            ('Summary',    'summary'),
         ]
 
         extracted_lines = []
-        for field in DISPLAY_FIELDS:
+        for label, field in EDIT_FIELDS:
             val = details.get(field)
             if val:
                 display_val = ', '.join(val) if isinstance(val, list) else str(val)
-                extracted_lines.append(f"{field}: {display_val}")
+                extracted_lines.append(f"{label}: {display_val}")
 
         edit_textblock = '\n'.join(extracted_lines)
 

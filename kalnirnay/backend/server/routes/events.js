@@ -80,32 +80,40 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'title is required' })
   }
 
-  // Query all events on the exact same date and group
-  const { data: existingEvents } = await supabase
-    .from('events')
-    .select('id, title')
-    .eq('date', date || '')
-    .eq('group_id', group_id || null)
+  // Query all events on the exact same date ACROSS ALL GROUPS
+  // This prevents the same event from being saved twice when posted in different groups
+  // Only check for duplicates if we have a valid date
+  if (date && date.trim()) {
+    try {
+      const { data: existingEvents } = await supabase
+        .from('events')
+        .select('id, title, group_id')
+        .eq('date', date)
 
-  if (existingEvents && existingEvents.length > 0) {
-    // Check for "similar" event: if titles share a significant substring
-    const newTitleClean = title.toLowerCase().trim()
+      if (existingEvents && existingEvents.length > 0) {
+        // Check for "similar" event: if titles share a significant substring
+        const newTitleClean = title.toLowerCase().trim()
 
-    for (const ev of existingEvents) {
-      const existingTitleClean = ev.title.toLowerCase().trim()
+        for (const ev of existingEvents) {
+          const existingTitleClean = ev.title.toLowerCase().trim()
 
-      // If one title is entirely contained within the other, or they are very similar
-      if (
-        newTitleClean === existingTitleClean ||
-        newTitleClean.includes(existingTitleClean) ||
-        existingTitleClean.includes(newTitleClean)
-      ) {
-        return res.status(409).json({
-          error: 'Duplicate event detected',
-          message: `A similar event "${ev.title}" already exists on ${date} for this group.`,
-          existing_id: ev.id
-        })
+          // If one title is entirely contained within the other, or they are very similar
+          if (
+            newTitleClean === existingTitleClean ||
+            newTitleClean.includes(existingTitleClean) ||
+            existingTitleClean.includes(newTitleClean)
+          ) {
+            return res.status(409).json({
+              error: 'Duplicate event detected',
+              message: `A similar event "${ev.title}" already exists on ${date}.`,
+              existing_id: ev.id
+            })
+          }
+        }
       }
+    } catch (dupErr) {
+      console.error('Duplicate check failed:', dupErr.message)
+      // Continue to insert even if duplicate check fails
     }
   }
 
