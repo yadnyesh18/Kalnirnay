@@ -1,4 +1,5 @@
 import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")  # suppress pin_memory warning on CPU-only hosts
 import re
 import logging
 import httpx
@@ -854,4 +855,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+
