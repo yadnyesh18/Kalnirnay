@@ -759,9 +759,9 @@ def parse_event_datetime(date_str: str, time_str: str = None) -> datetime | None
         return None
     try:
         if time_str:
-            # Try to parse time — take first part if it's a range like "10:00 AM - 12:00 PM"
             time_part = re.split(r'[-–]', time_str)[0].strip()
-            for fmt in ("%I:%M %p", "%I:%M%p", "%H:%M", "%I %p"):
+            time_part = re.sub(r'\s*IST\s*', '', time_part, flags=re.IGNORECASE).strip()
+            for fmt in ("%I:%M %p", "%I:%M%p", "%H:%M", "%I %p", "%I.%M %p", "%I.%M%p"):
                 try:
                     t = datetime.strptime(time_part.upper(), fmt)
                     d = datetime.strptime(normalized, "%Y-%m-%d")

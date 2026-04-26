@@ -18,6 +18,7 @@ export default function SmartChecklists({ user }) {
       setLoading(true)
       const res = await fetch(`${API}/checklists?user_id=${encodeURIComponent(uid)}`)
       const data = await res.json()
+      if (!Array.isArray(data)) { setLists([]); return }
       setLists(data)
       if (data.length && !activeList) setActiveList(data[0].id)
     } catch (err) { console.error(err) }
