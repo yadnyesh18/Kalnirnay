@@ -51,7 +51,7 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
           <button onClick={onBack} style={{background: 'none', border: 'none', color: 'var(--text-secondary, #888)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'inherit', fontSize: '0.9rem', padding: 0}}>
              <span className="material-symbols-outlined" style={{fontSize: '1.1rem'}}>arrow_back</span> Back
           </button>
-          <div className="si-brand" style={{cursor: 'default'}}>Kalnirnay</div>
+          <div className="si-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
         </div>
       </header>
 
@@ -108,7 +108,7 @@ export default function SignIn({ onBack, onSuccess, onRegister }) {
 
             {/* Switch */}
             <p className="si-switch">
-              New to Kalnirnay?{' '}
+              New to Kaalnirnay?{' '}
               <button className="si-link" onClick={onRegister ?? onBack}>Create an account</button>
             </p>
           </div>

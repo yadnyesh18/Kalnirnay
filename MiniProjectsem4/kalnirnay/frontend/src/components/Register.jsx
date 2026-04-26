@@ -58,7 +58,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
           <button onClick={onBack} style={{background: 'none', border: 'none', color: 'var(--text-secondary, #888)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'inherit', fontSize: '0.9rem', padding: 0}}>
              <span className="material-symbols-outlined" style={{fontSize: '1.1rem'}}>arrow_back</span> Back
           </button>
-          <div className="rg-brand" style={{cursor: 'default'}}>Kalnirnay</div>
+          <div className="rg-brand" style={{cursor: 'default'}}>Kaalnirnay</div>
         </div>
 
       </header>
@@ -230,7 +230,7 @@ export default function Register({ onBack, onSuccess, onSignIn }) {
                 </div>
                 <div>
                   <h4>Built for Students</h4>
-                  <p>Join 12,000+ students using Kalnirnay to track events, hackathons, and deadlines.</p>
+                  <p>Join 12,000+ students using Kaalnirnay to track events, hackathons, and deadlines.</p>
                 </div>
               </div>
 
