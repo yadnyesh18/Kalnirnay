@@ -511,8 +511,7 @@ async def handle_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Failed to link group to your account. Ensure backend is running.")
     else:
         await update.message.reply_text(
-            f"@{username} linked to *{group_name}*! Events from this group will appear on your calendar.",
-            parse_mode="Markdown"
+            f"@{username} linked to {group_name}! Events from this group will appear on your calendar."
         )
 
 # ── Callback handler ─────────────────────────────────────────────
