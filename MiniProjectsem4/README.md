@@ -1,0 +1,76 @@
+# Kalnirnay
+
+An academic event calendar that automatically extracts events from Telegram group messages and posters using OCR and NLP.
+
+## Architecture
+
+| Service | Stack | Directory |
+|---|---|---|
+| Backend API | Node.js + Express + Supabase | `kalnirnay/backend/server` |
+| Frontend | React + Vite | `kalnirnay/frontend` |
+| Telegram Bot | Python + EasyOCR + spaCy | `kalnirnay/backend/bot` |
+
+## Local Development
+
+### Backend
+```bash
+cd kalnirnay/backend/server
+npm install
+node server.js
+```
+
+### Frontend
+```bash
+cd kalnirnay/frontend
+npm install
+npm run dev
+```
+
+### Bot
+```bash
+cd kalnirnay/backend/bot
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+python bot.py
+```
+
+## Environment Variables
+
+Copy `.env.example` in each service directory and fill in the values.
+
+### Backend (`kalnirnay/backend/server/.env.example`)
+```
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+ALLOWED_ORIGINS=
+PORT=3000
+```
+
+### Frontend (`kalnirnay/frontend/.env.example`)
+```
+VITE_API_URL=
+```
+
+### Bot (`kalnirnay/backend/bot/.env.example`)
+```
+BOT_TOKEN=
+API_URL=
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+```
+
+## Railway Deployment
+
+Deploy as 3 separate Railway services, each pointing to its directory:
+
+1. **Backend** → `kalnirnay/backend/server`
+2. **Frontend** → `kalnirnay/frontend`
+3. **Bot** → `kalnirnay/backend/bot`
+
+Set environment variables in each service's Railway dashboard.
+
+## Database Setup
+
+Run `kalnirnay/database_fixes.sql` in your Supabase SQL editor to create all required tables.

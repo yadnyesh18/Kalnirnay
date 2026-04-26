@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #030303;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  font-family: 'Space Mono', monospace;
+  color: #fff;
+  overflow: hidden;
+}
+
+.splash-out {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.05);
+}
+
+.splash-grid {
+  position: absolute;
+  inset: -150%;
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(600px) rotateX(60deg) translateY(0) translateZ(-200px);
+  animation: moveSplashGrid 3s linear infinite;
+  mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+  -webkit-mask-image: radial-gradient(circle at center, black 10%, transparent 60%);
+}
+
+@keyframes moveSplashGrid {
+  0% { transform: perspective(600px) rotateX(60deg) translateY(0) translateZ(-200px); }
+  100% { transform: perspective(600px) rotateX(60deg) translateY(50px) translateZ(-200px); }
+}
+
+.splash-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.splash-icon-anim {
+  width: 50px;
+  height: 50px;
+  color: #fff;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
+}
+
+.draw-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: drawSvg 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.3s; }
+.delay-2 { animation-delay: 0.6s; }
+
+@keyframes drawSvg {
+  to { stroke-dashoffset: 0; }
+}
+
+.splash-title-glitch {
+  font-size: 1.5rem;
+  letter-spacing: 0.4em;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow: 0 0 15px rgba(255,255,255,0.4);
+  margin-right: -0.4em; /* offset tracking */
+}
+
+.splash-progress {
+  width: 160px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.splash-bar {
+  height: 100%;
+  width: 0;
+  background: #fff;
+  box-shadow: 0 0 10px 2px rgba(255,255,255,0.6);
+  animation: loadBar 1.8s cubic-bezier(0.8, 0, 0.2, 1) forwards;
+}
+
+@keyframes loadBar {
+  to { width: 100%; }
+}

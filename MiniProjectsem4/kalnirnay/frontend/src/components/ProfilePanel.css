@@ -1,0 +1,178 @@
+.pp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+}
+
+/* ── Header ── */
+.pp-header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.5rem 0 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 1.25rem;
+}
+
+.pp-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-family: 'Syne', sans-serif;
+}
+
+.pp-username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #dde1ea;
+  letter-spacing: -0.01em;
+}
+
+.pp-email {
+  font-size: 0.7rem;
+  color: #5c6370;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+/* ── Stats ── */
+.pp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pp-stat {
+  background: #1e2028;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 0.7rem 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pp-stat-n {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f97316;
+  line-height: 1;
+  font-family: 'Syne', sans-serif;
+}
+
+.pp-stat-l {
+  font-size: 0.58rem;
+  color: #5c6370;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Menu ── */
+.pp-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.pp-menu-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #3a3f4a;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.pp-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  cursor: default;
+  transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pp-menu-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.pp-menu-item--link {
+  cursor: pointer;
+}
+
+.pp-menu-icon {
+  font-size: 1rem !important;
+  color: #3a3f4a;
+  flex-shrink: 0;
+  width: 20px;
+  display: grid;
+  place-items: center;
+}
+
+.pp-tg-icon {
+  color: #24A1DE;
+}
+
+.pp-menu-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #dde1ea;
+  line-height: 1.2;
+}
+
+.pp-menu-sub {
+  font-size: 0.7rem;
+  color: #5c6370;
+  margin-top: 1px;
+}
+
+.pp-menu-arrow {
+  font-size: 0.85rem !important;
+  color: #3a3f4a;
+  margin-left: auto;
+}
+
+/* ── Logout ── */
+.pp-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  color: #5c6370;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.pp-logout:hover {
+  background: rgba(239,68,68,0.05);
+  border-color: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
