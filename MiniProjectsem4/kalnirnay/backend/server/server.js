@@ -15,14 +15,19 @@ const app  = express()
 const PORT = process.env.PORT || 3000
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'http://localhost:4173']
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().replace(/["\']/g, ''))
+  : []
 
-console.log('Allowed origins:', allowedOrigins)
+console.log('ALLOWED_ORIGINS raw:', JSON.stringify(process.env.ALLOWED_ORIGINS))
+console.log('Allowed origins parsed:', allowedOrigins)
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    // Allow requests with no origin (mobile apps, curl, Railway healthchecks)
+    if (!origin) return cb(null, true)
+    // If no origins configured, allow all (fallback)
+    if (allowedOrigins.length === 0) return cb(null, true)
+    if (allowedOrigins.includes(origin)) return cb(null, true)
     console.error(`CORS blocked: "${origin}" not in`, allowedOrigins)
     cb(new Error(`CORS blocked: ${origin}`))
   },
