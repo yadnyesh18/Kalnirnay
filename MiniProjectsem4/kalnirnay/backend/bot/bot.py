@@ -109,6 +109,9 @@ async def save_event(details: dict) -> dict:
     for d in dates:
         event_copy = dict(details)
         event_copy["date"] = d
+        # Ensure domains is always a list
+        if isinstance(event_copy.get("domains"), str):
+            event_copy["domains"] = [x.strip() for x in event_copy["domains"].split(',') if x.strip()]
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -551,6 +554,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         save_payload = {k: v for k, v in details.items() if not k.startswith('_')}
         save_payload["telegram_id"] = str(user_id)
+        # Ensure domains is always a list, never a plain string
+        if isinstance(save_payload.get("domains"), str):
+            save_payload["domains"] = [d.strip() for d in save_payload["domains"].split(',') if d.strip()]
         result = await save_event(save_payload)
 
         await query.edit_message_reply_markup(reply_markup=None)
