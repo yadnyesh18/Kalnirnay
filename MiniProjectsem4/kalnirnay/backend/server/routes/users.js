@@ -38,7 +38,7 @@ router.post('/', async (req, res) => {
     if (existing?.groups) groups = existing.groups
     if (group_id && !groups.includes(group_id)) groups.push(group_id)
 
-    const upsertData = { telegram_id, username, groups }
+    const upsertData = { telegram_id, username, telegram_username: username, groups }
 
     const { data, error } = await supabase
       .from('users')
@@ -138,14 +138,25 @@ router.post('/connect-telegram', async (req, res) => {
     return res.status(400).json({ error: 'user_id and telegram_username are required' })
   }
 
-  const clean = telegram_username.replace(/^@/, '')
+  const clean = telegram_username.replace(/^@/, '').trim()
 
-  // Find the bot-created user by username
-  const { data: botRecord } = await supabase
+  // Find the bot-created user — try username first, then telegram_username field
+  let botRecord = null
+  const { data: byUsername } = await supabase
     .from('users')
     .select('*')
     .eq('username', clean)
     .single()
+  if (byUsername) botRecord = byUsername
+
+  if (!botRecord) {
+    const { data: byTgUsername } = await supabase
+      .from('users')
+      .select('*')
+      .eq('telegram_username', clean)
+      .single()
+    if (byTgUsername) botRecord = byTgUsername
+  }
 
   if (!botRecord) {
     return res.status(404).json({

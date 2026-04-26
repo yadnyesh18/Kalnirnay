@@ -180,14 +180,13 @@ async def register_group(group_id: str, group_name: str) -> dict:
 
 async def subscribe_user(telegram_id: str, username: str, group_id: str = None, group_name: str = None) -> dict:
     try:
-        # If we have group info, register it first
         if group_id and group_name:
             await register_group(group_id, group_name)
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{API_URL}/users",
-                json={"telegram_id": telegram_id, "username": username, "group_id": group_id},
+                json={"telegram_id": telegram_id, "username": username, "telegram_username": username, "group_id": group_id},
                 timeout=10.0
             )
             return response.json()
@@ -447,6 +446,27 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=build_keyboard(key)
     )
 
+
+
+# ── Bot added to group handler ──────────────────────────────────
+async def handle_bot_added(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    result = update.my_chat_member
+    if not result:
+        return
+    chat = result.chat
+    new_status = result.new_chat_member.status
+    if new_status in ("member", "administrator") and chat.type in ("group", "supergroup"):
+        group_id   = str(chat.id)
+        group_name = chat.title or "Unknown Group"
+        await register_group(group_id, group_name)
+        logger.info(f"Bot added to group: {group_name} ({group_id})")
+        try:
+            await context.bot.send_message(
+                chat_id=chat.id,
+                text="Hi! I am Kaalnirnay bot. I will automatically detect events from images and messages. Use /join in this group to link it to your calendar."
+            )
+        except Exception as e:
+            logger.warning(f"Could not send welcome message to {group_id}: {e}")
 
 # ── Test Notification Command ────────────────────────────────────
 async def handle_testnotify(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -811,6 +831,10 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
+
+    # Register group as soon as bot is added to it
+    from telegram.ext import ChatMemberHandler
+    app.add_handler(ChatMemberHandler(handle_bot_added, ChatMemberHandler.MY_CHAT_MEMBER))
 
     scheduler.start()
 
