@@ -246,6 +246,16 @@ function MainApp({ user, onLogout, onUserUpdate }) {
               </div>
             )}
 
+            {activeTab === 'checklists' && (
+              <div className="feature-section">
+                <div className="feature-section-header">
+                  <h2 className="section-title">Smart Checklists</h2>
+                  <p className="feature-section-sub">Create and manage your task lists</p>
+                </div>
+                <SmartChecklists user={user} />
+              </div>
+            )}
+
             {activeTab === 'bento' && (
               <div className="feature-section">
                 <div className="feature-section-header">
