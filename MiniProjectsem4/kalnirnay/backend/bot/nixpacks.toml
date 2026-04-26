@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip", "python311Packages.virtualenv"]
+nixPkgs = ["python312", "python312Packages.pip", "tesseract", "libGL", "glib"]
 aptPkgs = ["tesseract-ocr", "tesseract-ocr-eng", "libgl1", "libglib2.0-0"]
 
 [phases.install]
