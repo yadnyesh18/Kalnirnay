@@ -15,12 +15,15 @@ const app  = express()
 const PORT = process.env.PORT || 3000
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:5173', 'http://localhost:4173']
+
+console.log('Allowed origins:', allowedOrigins)
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    console.error(`CORS blocked: "${origin}" not in`, allowedOrigins)
     cb(new Error(`CORS blocked: ${origin}`))
   },
   credentials: true
