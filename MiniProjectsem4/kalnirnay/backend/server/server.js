@@ -14,25 +14,8 @@ const checklistsRouter = require('./routes/checklists')
 const app  = express()
 const PORT = process.env.PORT || 3000
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().replace(/["\']/g, ''))
-  : []
-
-console.log('ALLOWED_ORIGINS raw:', JSON.stringify(process.env.ALLOWED_ORIGINS))
-console.log('Allowed origins parsed:', allowedOrigins)
-
-app.use(cors({
-  origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, curl, Railway healthchecks)
-    if (!origin) return cb(null, true)
-    // If no origins configured, allow all (fallback)
-    if (allowedOrigins.length === 0) return cb(null, true)
-    if (allowedOrigins.includes(origin)) return cb(null, true)
-    console.error(`CORS blocked: "${origin}" not in`, allowedOrigins)
-    cb(new Error(`CORS blocked: ${origin}`))
-  },
-  credentials: true
-}))
+app.use(cors())
+console.log('CORS: open to all origins')
 app.use(express.json())
 
 // Routes
