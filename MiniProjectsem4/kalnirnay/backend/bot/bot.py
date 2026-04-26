@@ -448,6 +448,33 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# ── Test Notification Command ────────────────────────────────────
+async def handle_testnotify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send an instant test notification to verify routing works."""
+    is_private = update.effective_chat.type == 'private'
+    user_id = str(update.effective_user.id)
+    chat_id = user_id if is_private else str(update.effective_chat.id)
+    label = "Personal DM" if is_private else f"Group: {update.effective_chat.title}"
+
+    await update.message.reply_text("Sending test notification...")
+
+    if is_private:
+        await send_notification(update.get_bot(), user_id, "Test Event", 24, user_id)
+        await update.message.reply_text("✅ Personal DM notification sent!")
+    else:
+        # Group: notify group + DM all members
+        await send_notification(update.get_bot(), chat_id, "Test Event", 24, user_id)
+        members = await fetch_group_members(chat_id)
+        dm_count = 0
+        for member_id in members:
+            if member_id != user_id:
+                await send_notification(update.get_bot(), member_id, "Test Event", 24, member_id)
+                dm_count += 1
+        await update.message.reply_text(
+            f"✅ Group notification sent!\n👤 DMed {dm_count} member(s)."
+        )
+
+
 # ── Start Command Handler ─────────────────────────────────────────
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -466,16 +493,27 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ── Join Command Handler ───────────────────────────────────────────
 async def handle_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    is_private = update.effective_chat.type == 'private'
     user_id = update.effective_user.id
     username = update.effective_user.username or str(user_id)
+
+    if is_private:
+        await update.message.reply_text(
+            "Please use /join inside your college Telegram group, not in a private chat."
+        )
+        return
+
+    group_id   = str(update.effective_chat.id)
     group_name = update.effective_chat.title or "Unknown Group"
-    
-    res = await subscribe_user(str(user_id), username, chat_id, group_name)
+
+    res = await subscribe_user(str(user_id), username, group_id, group_name)
     if "error" in res:
         await update.message.reply_text("Failed to link group to your account. Ensure backend is running.")
     else:
-        await update.message.reply_text(f"[OK] @{username} linked to *{group_name}*! All events from this group will appear on your calendar.", parse_mode="Markdown")
+        await update.message.reply_text(
+            f"@{username} linked to *{group_name}*! Events from this group will appear on your calendar.",
+            parse_mode="Markdown"
+        )
 
 # ── Callback handler ─────────────────────────────────────────────
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -597,11 +635,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_notification(bot, chat_id: str, event_title: str, hours_before: int, telegram_id: str = None):
     """Send a reminder to the correct chat (group or personal DM)."""
     if hours_before == 24:
-        msg = f"⏰ *Reminder:* 24 hours left for *{event_title}*!"
+        msg = f"*Reminder:* 24 hours left for *{event_title}*!"
     elif hours_before == 12:
-        msg = f"⏰ *Reminder:* 12 hours left for *{event_title}*!"
+        msg = f"*Reminder:* 12 hours left for *{event_title}*!"
     else:
-        msg = f"🚨 *Heads up!* Only 2 hours left for *{event_title}*!"
+        msg = f"*Heads up!* Only 2 hours left for *{event_title}*!"
     try:
         await bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
         logger.info(f"Sent {hours_before}hr reminder to chat {chat_id} for '{event_title}'")
@@ -770,6 +808,7 @@ def main():
 
     app.add_handler(CommandHandler("start", handle_start))
     app.add_handler(CommandHandler("join", handle_join))
+    app.add_handler(CommandHandler("testnotify", handle_testnotify))
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
