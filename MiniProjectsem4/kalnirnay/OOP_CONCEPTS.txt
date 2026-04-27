@@ -1,0 +1,499 @@
+KAALNIRNAY — OOP CONCEPTS USED IN THE PROJECT
+===============================================
+Academic Event Calendar with Telegram Bot, REST API, and React Frontend
+Stack: Python (Bot + OCR), Node.js/Express (Backend), React (Frontend)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. CLASSES AND OBJECTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definition:
+  A class is a blueprint for creating objects. An object is an instance
+  of a class with its own state (attributes) and behaviour (methods).
+
+Where used in Kaalnirnay:
+
+  Python Bot (bot.py / ocr.py):
+  - AsyncIOScheduler (from APScheduler) — class instantiated as:
+      scheduler = AsyncIOScheduler()
+    The scheduler object manages all timed notification jobs.
+
+  - ApplicationBuilder — builder class used to construct the Telegram
+    Application object:
+      app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+  - Update, InlineKeyboardButton, InlineKeyboardMarkup — Telegram SDK
+    classes instantiated to represent incoming messages and UI elements.
+
+  - easyocr.Reader — class instantiated lazily (singleton pattern):
+      _easy_reader = easyocr.Reader(['en'])
+    Object holds the loaded OCR model in memory.
+
+  - spacy.load("en_core_web_sm") — returns an NLP pipeline object (nlp)
+    used to process text and extract named entities.
+
+  React Frontend (App.jsx, SmartChecklists.jsx, etc.):
+  - Every React component (App, MainApp, SmartChecklists, CalendarView,
+    ProfilePanel, EventCard, etc.) is a function-based class equivalent.
+    Each component encapsulates its own state and rendering logic.
+
+  Node.js Backend (server.js, routes/*.js):
+  - express() — instantiates the Express application object.
+  - supabase = createClient(...) — instantiates the Supabase client object.
+  - router = express.Router() — instantiates a router object per module.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. ENCAPSULATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definition:
+  Bundling data (attributes) and methods that operate on that data into
+  a single unit, and restricting direct access to internal state.
+
+Where used in Kaalnirnay:
+
+  Python Bot (bot.py):
+  - PENDING_EVENTS = {} and EDITING_USERS = {} are module-level
+    dictionaries that act as encapsulated in-memory state stores.
+    Only the bot handler functions (handle_callback, handle_text) read
+    and write to them — no external module touches them directly.
+
+  - config.py encapsulates all environment variable loading:
+      BOT_TOKEN = os.getenv("BOT_TOKEN")
+      SUPABASE_URL = os.getenv("SUPABASE_URL")
+    The rest of the codebase imports only the named constants, never
+    calls os.getenv() directly — internal loading logic is hidden.
+
+  - The _easy_reader global in ocr.py is encapsulated behind the
+    get_easy_reader() function. Callers never access _easy_reader
+    directly; they call get_easy_reader() which handles lazy init.
+
+  Node.js Backend:
+  - supabaseClient.js encapsulates the Supabase connection:
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      module.exports = supabase
+    All routes import the client without knowing how it was created.
+
+  - Each route file (events.js, users.js, groups.js, checklists.js)
+    encapsulates its own database logic. server.js only mounts them:
+      app.use('/events', eventsRouter)
+    The internal query logic is hidden from server.js.
+
+  React Frontend:
+  - SmartChecklists.jsx encapsulates all checklist state (lists,
+    activeList, addingList) and exposes only a <SmartChecklists user={user}/>
+    interface to App.jsx. App.jsx has no knowledge of how lists are
+    fetched, stored, or rendered.
+
+  - ProfilePanel.jsx encapsulates group name fetching internally via
+    useEffect + axios. The parent component just passes user and events.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ABSTRACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definition:
+  Hiding complex implementation details and exposing only the necessary
+  interface. Users interact with a simplified API without knowing the
+  internals.
+
+Where used in Kaalnirnay:
+
+  Python Bot (bot.py):
+  - save_event(details) abstracts the entire event-saving flow:
+    date range splitting, per-date API calls, error aggregation.
+    Callers just pass a details dict and get a result back.
+
+  - schedule_notifications(bot, telegram_id, title, dt, notify_chat_id)
+    abstracts the complexity of fan-out logic (group vs personal),
+    APScheduler job creation, and time calculations. Callers don't
+    know how reminders are scheduled internally.
+
+  - register_group(group_id, group_name) abstracts the HTTP POST to
+    the backend. Callers just pass the group info.
+
+  - fetch_group_members(group_id) abstracts the Supabase REST query
+    including URL encoding of the array filter syntax.
+
+  Python OCR (ocr.py):
+  - process_image(image_path) is the public abstraction over the entire
+    OCR pipeline: preprocessing → dual OCR (Tesseract + EasyOCR) →
+    quality scoring → NLP extraction. Callers pass a path, get a dict.
+
+  - process_text(text) abstracts NLP extraction from raw text.
+
+  - is_informational(text) abstracts the scoring logic — callers get
+    a simple True/False without knowing about _msg_score() internals.
+
+  - get_best_text(image_path) abstracts the dual-engine OCR comparison
+    and returns only the best result.
+
+  Node.js Backend:
+  - The REST API itself is an abstraction layer over Supabase. The
+    frontend never queries Supabase directly — it calls /events, /users,
+    /checklists endpoints and the backend handles all DB logic.
+
+  React Frontend:
+  - fetchEvents() in App.jsx abstracts the URL construction, axios call,
+    and state update. Components just call fetchEvents() to refresh.
+
+  - The CalendarView component abstracts FullCalendar configuration.
+    App.jsx just passes events and callbacks.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. INHERITANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definition:
+  A mechanism where a child class acquires properties and behaviours
+  of a parent class, enabling code reuse and hierarchical relationships.
+
+Where used in Kaalnirnay:
+
+  Python Bot (bot.py):
+  - All Telegram handler functions receive Update and ContextTypes.DEFAULT_TYPE
+    as parameters. Update is a class that inherits from TelegramObject
+    (base class in python-telegram-bot). It provides inherited methods
+    like update.effective_chat, update.effective_user, update.message.
+
+  - telegram.error.ChatMigrated and telegram.error.Forbidden both
+    inherit from telegram.error.TelegramError (base exception class).
+    The bot catches the base and checks isinstance() for specific types:
+        from telegram.error import ChatMigrated, Forbidden
+        if isinstance(e, ChatMigrated): ...
+        if isinstance(e, Forbidden): ...
+
+  - MessageHandler, CommandHandler, CallbackQueryHandler, ChatMemberHandler
+    all inherit from BaseHandler in python-telegram-bot. They share the
+    common handle_update() interface but override the check_update()
+    method to filter different update types.
+
+  - AsyncIOScheduler inherits from BaseScheduler (APScheduler).
+    It overrides the event loop integration to work with asyncio.
+
+  Python OCR (ocr.py):
+  - dateparser.parse() internally uses a hierarchy of date parsers
+    (FreshnessDateDataParser, AbsoluteDateParser, etc.) all inheriting
+    from a common base parser interface.
+
+  Node.js Backend:
+  - Express Router inherits from Node's EventEmitter. The router object
+    inherits event-driven request handling from the base class.
+
+  React Frontend:
+  - React.Component is the base class for class components. Although
+    this project uses function components, the underlying React
+    reconciler treats all components through a common interface.
+    useState, useEffect are hooks that abstract the lifecycle methods
+    inherited in class components (componentDidMount, componentDidUpdate).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. POLYMORPHISM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definition:
+  The ability of different objects to respond to the same interface
+  in different ways. One interface, multiple implementations.
+
+Where used in Kaalnirnay:
+
+  Python Bot (bot.py):
+  - send_notification(bot, chat_id, ...) is called with different
+    chat_id types — a group chat ID (negative integer string) or a
+    personal user ID (positive integer string). The same function
+    behaves differently based on the destination:
+    - Group chat → message visible to all members
+    - Personal DM → private message to one user
+    The Telegram Bot API handles the polymorphic send internally.
+
+  - schedule_notifications() exhibits polymorphic behaviour:
+    - When notify_chat_id != telegram_id → schedules _fan_out job
+    - When notify_chat_id == telegram_id → schedules send_notification job
+    Same function call, different job types scheduled.
+
+  Python OCR (ocr.py):
+  - get_best_text() calls both pytesseract.image_to_string() and
+    easyocr.Reader.readtext() — two different OCR engines with different
+    internal implementations but the same purpose: extract text from
+    an image. The function polymorphically selects the better result.
+
+  - parse_date() uses dateparser.parse() which internally tries multiple
+    date format parsers polymorphically until one succeeds.
+
+  - normalize_date() tries multiple strptime format strings in a loop —
+    each format is a different "implementation" of date parsing, tried
+    polymorphically until one matches.
+
+  Node.js Backend:
+  - The Express middleware chain is polymorphic: cors(), express.json(),
+    route handlers, and the error handler all share the same
+    (req, res, next) signature but perform completely different tasks.
+
+  - The duplicate check in events.js uses string containment in both
+    directions (includes) — polymorphic comparison that handles both
+    "new title contains old" and "old title contains new" cases.
+
+  React Frontend:
+  - EventListItem renders differently based on isPersonal flag:
+    - Personal event → orange dot, "Personal" badge
+    - Group event → blue dot, group name badge
+    Same component, different visual output based on data.
+
+  - The tab system in App.jsx renders different components
+    (CalendarView, ExamCountdowns, SmartChecklists, BentoPlanning)
+    based on activeTab state — same tab-bar interface, different content.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. ADDITIONAL OOP PATTERNS USED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A. SINGLETON PATTERN
+   Definition: Ensures only one instance of a class exists.
+
+   Used in:
+   - _easy_reader in ocr.py — EasyOCR model loaded only once:
+       _easy_reader = None
+       def get_easy_reader():
+           global _easy_reader
+           if _easy_reader is None:
+               _easy_reader = easyocr.Reader(['en'])
+           return _easy_reader
+     Loading the model is expensive (~5 seconds). Singleton ensures
+     it happens only once per bot process lifetime.
+
+   - supabaseClient.js — single Supabase client instance shared across
+     all route files via module.exports.
+
+   - scheduler = AsyncIOScheduler() — single scheduler instance shared
+     across all notification functions in bot.py.
+
+
+B. BUILDER PATTERN
+   Definition: Constructs complex objects step by step.
+
+   Used in:
+   - ApplicationBuilder in bot.py:
+       app = (
+           ApplicationBuilder()
+           .token(BOT_TOKEN)
+           .connect_timeout(30.0)
+           .read_timeout(30.0)
+           .write_timeout(30.0)
+           .build()
+       )
+     Each method call configures one aspect of the Telegram application.
+     .build() finalises and returns the constructed object.
+
+
+C. OBSERVER PATTERN
+   Definition: Objects (observers) subscribe to events from a subject
+   and are notified when the event occurs.
+
+   Used in:
+   - Telegram Bot handler registration:
+       app.add_handler(MessageHandler(filters.PHOTO, handle_image))
+       app.add_handler(CommandHandler("join", handle_join))
+       app.add_handler(ChatMemberHandler(handle_bot_added, ...))
+     Each handler observes a specific event type. When Telegram sends
+     an update, the Application notifies the matching handler.
+
+   - React useEffect hooks observe state/prop changes:
+       useEffect(() => { fetchEvents() }, [user])
+     fetchEvents() is called whenever the user object changes —
+     classic observer pattern between state and side effects.
+
+   - APScheduler DateTrigger jobs observe the system clock and fire
+     the callback when the scheduled time is reached.
+
+
+D. STRATEGY PATTERN
+   Definition: Defines a family of algorithms, encapsulates each one,
+   and makes them interchangeable.
+
+   Used in:
+   - OCR engine selection in ocr.py:
+       ts = ocr_score(tess_text)
+       es = ocr_score(easy_text)
+       if es >= ts:
+           return easy_text, "easyocr"
+       return tess_text, "tesseract"
+     Two OCR strategies (Tesseract, EasyOCR) are run and the better
+     one is selected based on a quality score.
+
+   - Date parsing in normalize_date() and parse_event_datetime():
+       for fmt in ("%d %m %Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+           try: return datetime.strptime(date_str, fmt)...
+     Each format string is a parsing strategy tried in sequence.
+
+   - Message classification in ocr.py uses weighted keyword scoring
+     across multiple category strategies (event, exam, assignment,
+     lab, timetable, notice) — the highest-scoring strategy wins.
+
+
+E. FACADE PATTERN
+   Definition: Provides a simplified interface to a complex subsystem.
+
+   Used in:
+   - The REST API is a facade over Supabase. The frontend calls
+     simple HTTP endpoints (/events, /users, /checklists) without
+     knowing about Supabase query syntax, RLS policies, or joins.
+
+   - process_image(image_path) is a facade over the entire pipeline:
+     preprocessing → dual OCR → scoring → NLP extraction → dict output.
+
+   - config.py is a facade over environment variable loading. The bot
+     imports BOT_TOKEN, SUPABASE_URL directly without knowing about
+     dotenv, file paths, or fallback logic.
+
+
+F. TEMPLATE METHOD PATTERN
+   Definition: Defines the skeleton of an algorithm in a base method,
+   deferring some steps to subclasses or helper functions.
+
+   Used in:
+   - extract_details() in ocr.py defines the template for extraction:
+     1. Parse date → 2. Parse deadline → 3. Parse time → 4. Parse venue
+     → 5. Parse department → 6. Parse prize → 7. Parse domains
+     → 8. Parse team size → 9. Parse reg link → 10. Parse contact
+     → 11. Build summary → 12. Find title → return result dict.
+     Each step is a separate helper that can be independently modified.
+
+   - handle_callback() in bot.py defines the template for button actions:
+     1. Extract key → 2. Get pending event → 3. Process action
+     → 4. Clean up state. The three branches (save/edit/discard) follow
+     this same template with different step 3 implementations.
+
+
+G. COMMAND PATTERN
+   Definition: Encapsulates a request as an object, allowing it to be
+   queued, logged, or undone.
+
+   Used in:
+   - APScheduler jobs encapsulate notification commands as objects:
+       scheduler.add_job(
+           send_notification,
+           trigger=DateTrigger(run_date=fire_time),
+           args=[bot, chat_id, event_title, hours],
+           id=job_id,
+           replace_existing=True
+       )
+     Each job is a command object with: function, arguments, trigger
+     time, and a unique ID. Commands can be replaced (replace_existing).
+
+   - Telegram InlineKeyboardButton encapsulates user actions as
+     callback_data strings ("save_123", "edit_123", "disc_123").
+     When pressed, the command is dispatched to handle_callback().
+
+
+H. REPOSITORY PATTERN
+   Definition: Abstracts the data layer, providing a collection-like
+   interface for accessing domain objects.
+
+   Used in:
+   - Each route file acts as a repository:
+     - events.js → EventRepository (CRUD for events)
+     - users.js  → UserRepository (CRUD for users)
+     - groups.js → GroupRepository (CRUD for groups)
+     - checklists.js → ChecklistRepository (CRUD for checklists)
+     All database queries are centralised in these files. No other
+     part of the system queries Supabase directly.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. OOP PRINCIPLES (SOLID)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+S — Single Responsibility Principle
+    Each module has one job:
+    - config.py       → only loads environment variables
+    - ocr.py          → only handles OCR and NLP extraction
+    - bot.py          → only handles Telegram bot logic
+    - events.js       → only handles event CRUD
+    - users.js        → only handles user CRUD
+    - SmartChecklists → only renders and manages checklists
+
+O — Open/Closed Principle
+    - EVENT_KEYWORDS list in bot.py can be extended with new keywords
+      without modifying is_event_message() logic.
+    - CATEGORY_SIGNALS dict in ocr.py can have new categories added
+      without changing classify_message() or _msg_score().
+    - New route files can be added to server.js without modifying
+      existing routes.
+
+L — Liskov Substitution Principle
+    - ChatMigrated and Forbidden both substitute for TelegramError
+      in exception handling — the code handles the base type and
+      substitutes specific types where needed.
+    - All Express route handlers are substitutable — they all accept
+      (req, res, next) and can be swapped without breaking the chain.
+
+I — Interface Segregation Principle
+    - Bot handlers are segregated by update type:
+      handle_image (photos only), handle_text (text only),
+      handle_join (command only), handle_bot_added (member events only).
+      No handler is forced to deal with update types it doesn't need.
+
+D — Dependency Inversion Principle
+    - bot.py depends on the API_URL abstraction, not on a specific
+      server implementation. The URL is injected via environment variable.
+    - React components depend on props (abstractions), not on specific
+      data sources. CalendarView receives events as a prop — it doesn't
+      care whether they came from Supabase, a mock, or an API.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. ASYNC / CONCURRENT PROGRAMMING (OOP IN ASYNC CONTEXT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - All bot handler functions are async methods (coroutines):
+      async def handle_image(update, context)
+      async def handle_text(update, context)
+    This is OOP applied to asynchronous programming — the Application
+    object manages the event loop and dispatches coroutines.
+
+  - httpx.AsyncClient() is used as an async context manager:
+      async with httpx.AsyncClient() as client:
+          response = await client.post(...)
+    The AsyncClient object encapsulates connection pooling and cleanup.
+
+  - _fan_out() is a nested async function (closure) defined inside
+    schedule_notifications(). It captures bot, notify_chat_id,
+    telegram_id from the outer scope — demonstrating closure as an
+    OOP-adjacent concept for state capture.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUMMARY TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ OOP Concept          | Where Used
+ ---------------------|--------------------------------------------------
+ Classes & Objects    | AsyncIOScheduler, ApplicationBuilder, easyocr.Reader,
+                      | Express app/router, Supabase client, React components
+ Encapsulation        | config.py, PENDING_EVENTS, supabaseClient.js,
+                      | SmartChecklists state, route modules
+ Abstraction          | save_event(), schedule_notifications(),
+                      | process_image(), REST API over Supabase
+ Inheritance          | TelegramObject hierarchy, BaseHandler subclasses,
+                      | ChatMigrated/Forbidden from TelegramError
+ Polymorphism         | send_notification() (group vs DM), OCR engine
+                      | selection, EventListItem (personal vs group)
+ Singleton            | _easy_reader, supabaseClient, scheduler
+ Builder              | ApplicationBuilder chain
+ Observer             | Telegram handlers, React useEffect, APScheduler
+ Strategy             | OCR engine selection, date format iteration,
+                      | message category scoring
+ Facade               | REST API, process_image(), config.py
+ Template Method      | extract_details() pipeline, handle_callback()
+ Command              | APScheduler jobs, InlineKeyboardButton callbacks
+ Repository           | events.js, users.js, groups.js, checklists.js
+ SOLID Principles     | All five principles demonstrated across modules
+ Async OOP            | async handlers, httpx.AsyncClient, _fan_out closure
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
