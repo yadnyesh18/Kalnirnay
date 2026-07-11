@@ -843,9 +843,8 @@ def main():
     from telegram.ext import ChatMemberHandler
     app.add_handler(ChatMemberHandler(handle_bot_added, ChatMemberHandler.MY_CHAT_MEMBER))
 
-    scheduler.start()
-
     async def post_init(application):
+        scheduler.start()
         await load_and_reschedule(application.bot)
 
     app.post_init = post_init

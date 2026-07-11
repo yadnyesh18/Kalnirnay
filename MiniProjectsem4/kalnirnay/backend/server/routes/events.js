@@ -9,7 +9,7 @@ router.get('/upcoming', async (req, res) => {
     .from('events')
     .select('id, title, date, time, deadline, telegram_id, group_id')
     .gte('date', today)
-    .not('telegram_id', 'is', null)
+    .not('telegram_id', 'is', null) 
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
 })
